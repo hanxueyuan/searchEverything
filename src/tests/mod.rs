@@ -14,3 +14,6 @@ mod linux_tests;
 
 #[cfg(test)]
 mod benchmarks;
+
+#[cfg(test)]
+mod integration_tests;

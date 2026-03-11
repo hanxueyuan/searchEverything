@@ -4,7 +4,12 @@ use std::fs;
 use serde::{Serialize, Deserialize};
 use crate::file_index::{IndexManager, TrieIndex, IndexPersistence};
 use crate::file_index::persistence::get_default_index_path;
+
+#[cfg(target_os = "linux")]
 use crate::file_index::linux::{start_watch, get_linux_system_excludes};
+
+#[cfg(target_os = "windows")]
+use crate::file_index::windows::{start_usn_watch, get_windows_system_excludes};
 
 /// 索引配置
 #[derive(Serialize, Deserialize, Clone)]
@@ -206,9 +211,22 @@ pub fn execute(action: &crate::IndexAction) -> Result<()> {
             // 加载或构建索引
             let _ = manager.load_or_build(&paths_to_watch, &config.excluded_paths);
             
-            // 获取索引可变引用并启动监控
+            // 获取索引可变引用并启动监控（跨平台）
             if let Some(index) = manager.get_index_mut() {
-                start_watch(&paths_to_watch, &config.excluded_paths, index)?;
+                #[cfg(target_os = "linux")]
+                {
+                    start_watch(&paths_to_watch, &config.excluded_paths, index)?;
+                }
+                
+                #[cfg(target_os = "windows")]
+                {
+                    start_usn_watch(&paths_to_watch, &config.excluded_paths, index)?;
+                }
+                
+                #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+                {
+                    anyhow::bail!("Real-time monitoring is only available on Linux and Windows");
+                }
             }
         }
         

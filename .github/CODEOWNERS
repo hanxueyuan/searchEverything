@@ -1,0 +1,18 @@
+# Code Owners for searchEverything
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# 默认代码所有者
+* @hanxueyuan
+
+# 核心代码
+/src/ @hanxueyuan
+
+# CI/CD 配置
+/.github/workflows/ @hanxueyuan
+
+# 文档
+/docs/ @hanxueyuan
+*.md @hanxueyuan
+
+# OpenClaw Skill 集成
+/skills/ @hanxueyuan

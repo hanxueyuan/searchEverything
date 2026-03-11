@@ -1,0 +1,116 @@
+name: Coverage
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+        with:
+          components: llvm-tools
+
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Generate coverage report
+        run: cargo tarpaulin --all-features --out Xml --out Html --output-dir ./coverage --timeout 120
+
+      - name: Upload coverage report (HTML)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-html
+          path: ./coverage/html
+          retention-days: 30
+
+      - name: Upload coverage report (XML)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-xml
+          path: ./coverage/cobertura.xml
+          retention-days: 30
+
+      - name: Check coverage threshold
+        run: |
+          # 解析覆盖率报告
+          COVERAGE=$(grep -oP 'line-rate="\K[0-9.]+' ./coverage/cobertura.xml || echo "0")
+          COVERAGE_PERCENT=$(echo "$COVERAGE * 100" | bc)
+          echo "Coverage: ${COVERAGE_PERCENT}%"
+          
+          # 设置覆盖率阈值 (80%)
+          THRESHOLD=80
+          
+          if (( $(echo "$COVERAGE_PERCENT < $THRESHOLD" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE_PERCENT}% is below threshold ${THRESHOLD}%"
+            exit 1
+          else
+            echo "✅ Coverage ${COVERAGE_PERCENT}% meets threshold ${THRESHOLD}%"
+          fi
+
+      - name: Comment PR with coverage (PR only)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const coverageFile = './coverage/cobertura.xml';
+            
+            if (fs.existsSync(coverageFile)) {
+              const content = fs.readFileSync(coverageFile, 'utf8');
+              const match = content.match(/line-rate="([0-9.]+)"/);
+              if (match) {
+                const coverage = (parseFloat(match[1]) * 100).toFixed(2);
+                const comment = `## 📊 Code Coverage Report\n\n**Coverage:** ${coverage}%\n\n![coverage-badge](https://img.shields.io/badge/coverage-${coverage}%25-blue)\n\n<details>\n<summary>View detailed report</summary>\n\nCoverage report is available in the workflow artifacts.\n</details>`;
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: comment
+                });
+              }
+            }
+
+  # ============================================
+  # 覆盖率趋势跟踪 (可选)
+  # ============================================
+  coverage-trend:
+    name: Coverage Trend
+    runs-on: ubuntu-latest
+    needs: coverage
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report-xml
+          path: ./coverage
+
+      - name: Store coverage data
+        run: |
+          echo "Storing coverage trend data..."
+          # 这里可以添加逻辑来存储覆盖率历史数据
+          # 例如写入到文件并推送到另一个分支
+          COVERAGE=$(grep -oP 'line-rate="\K[0-9.]+' ./coverage/cobertura.xml || echo "0")
+          echo "$(date -Iseconds),$COVERAGE" >> coverage-trend.csv

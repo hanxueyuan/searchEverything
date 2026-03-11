@@ -5,10 +5,13 @@
 ## 特性
 
 - 🔍 **三种搜索模式**：通配符（默认）、正则表达式、模糊搜索
-- ⚡ **高性能**：Rust 实现，内存索引
+- ⚡ **高性能**：Rust 实现，Trie 树索引，O(m) 前缀搜索
 - 🖥️ **跨平台**：Windows/Linux/macOS
 - 🤖 **OpenClaw 集成**：JSON 输出，大模型友好
 - 📁 **索引管理**：手动添加/移除索引目录
+- 🔔 **实时监控**：Linux inotify / Windows USN Journal
+- 📊 **流式输出**：边匹配边输出，支持分页
+- 📝 **审计日志**：操作历史追踪，支持查询导出
 
 ## 安装
 
@@ -92,6 +95,45 @@ searchEverything index rebuild --path D:/work
 
 # 快速查看状态
 searchEverything index-status
+
+# 实时监控（Linux inotify / Windows USN）
+searchEverything index watch /home    # Linux
+searchEverything index watch C:/work  # Windows
+
+### 流式输出
+
+```bash
+# 流式输出（边匹配边输出）
+searchEverything search "*.log" --stream
+
+# 分页显示（每页 20 条结果）
+searchEverything search "*.txt" --stream --page-size 20
+
+# 大量文件搜索时自动启用进度显示
+searchEverything search "*.pdf" --stream
+```
+
+### 审计日志
+
+```bash
+# 查看最近的日志
+searchEverything audit list
+searchEverything audit list --limit 50
+searchEverything audit list --command search
+
+# 搜索日志
+searchEverything audit search --command search --after 2024-01-01T00:00:00+08:00
+searchEverything audit search --result error
+
+# 导出日志
+searchEverything audit export --format json --output audit.json
+searchEverything audit export --format csv --output audit.csv
+
+# 查看统计信息
+searchEverything audit stats
+
+# 清理旧日志
+searchEverything audit cleanup --days 30
 ```
 
 ## OpenClaw Skill 集成

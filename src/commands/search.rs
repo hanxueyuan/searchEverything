@@ -1,11 +1,21 @@
 use crate::error::SearchError;
-use crate::output::{OutputFormat, SearchResult};
+use crate::output::{OutputFormat, SearchResult, StreamOutput};
 use anyhow::Result;
 use std::path::Path;
 use walkdir::WalkDir;
 use regex::Regex;
 use std::io::{self, Write};
 
+/// 搜索执行函数
+/// 
+/// 支持三种搜索模式：
+/// - 通配符（默认）：*.pdf, report*.docx
+/// - 正则表达式：--regex ".*\.rs$"
+/// - 模糊搜索：--fuzzy cargo
+///
+/// 支持流式输出：
+/// - --stream：边匹配边输出
+/// - --page-size N：每页显示 N 条结果
 pub fn execute(
     pattern: &str,
     path: &Path,
@@ -15,9 +25,8 @@ pub fn execute(
     use_regex: bool,
     use_fuzzy: bool,
     stream: bool,
+    page_size: Option<usize>,
 ) -> Result<()> {
-    let mut results = Vec::new();
-    
     // 编译正则表达式（如果需要）
     let regex_pattern = if use_regex {
         Some(Regex::new(pattern)?)
@@ -25,11 +34,18 @@ pub fn execute(
         None
     };
     
+    // 创建流式输出器
+    let mut stream_output = StreamOutput::new(format.clone(), page_size);
+    
+    let mut results = Vec::new();
+    let mut scanned = 0;
+    
     for entry in WalkDir::new(path)
         .into_iter()
         .filter_map(|e| e.ok())
-        .take(limit * 10)  // 多取一些用于模糊排序
     {
+        scanned += 1;
+        
         let file_name = entry.file_name().to_string_lossy();
         let mut matched = false;
         
@@ -49,74 +65,77 @@ pub fn execute(
         
         if matched {
             let metadata = entry.metadata()?;
-            results.push(SearchResult {
-                path: entry.path().to_string_lossy().to_string(),
-                size: metadata.len(),
-                modified: format!("{}", entry.metadata()?.modified()?.duration_since(std::time::UNIX_EPOCH)?.as_secs()),
-                is_dir: metadata.is_dir(),
-            });
+            let result = SearchResult::from_path(entry.path(), &metadata);
             
-            if results.len() >= limit {
-                break;
+            if stream {
+                // 流式输出：立即输出结果
+                stream_output.write(&result)?;
+            } else {
+                // 批量输出：先收集结果
+                results.push(result);
             }
+            
+            // 检查是否达到限制
+            if stream {
+                if stream_output.count() >= limit {
+                    break;
+                }
+            } else {
+                if results.len() >= limit {
+                    break;
+                }
+            }
+        }
+        
+        // 定期输出进度（每 1000 个文件）
+        if stream && scanned % 1000 == 0 {
+            stream_output.write_progress(scanned, stream_output.count())?;
         }
     }
     
-    // 模糊搜索时按相关度排序
-    if use_fuzzy {
-        results.sort_by(|a, b| {
-            let a_name = a.path.to_lowercase();
-            let b_name = b.path.to_lowercase();
-            let pattern_lower = pattern.to_lowercase();
-            
-            // 包含匹配度排序
-            let a_score = if a_name.starts_with(&pattern_lower) { 2 } 
-                         else if a_name.contains(&pattern_lower) { 1 } 
-                         else { 0 };
-            let b_score = if b_name.starts_with(&pattern_lower) { 2 } 
-                         else if b_name.contains(&pattern_lower) { 1 } 
-                         else { 0 };
-            
-            b_score.cmp(&a_score)
-        });
-    }
-    
-    // 输出结果
-    match format {
-        OutputFormat::Text => {
-            if stream {
-                // 流式输出 - 找到一个输出一个
-                let stdout = io::stdout();
-                let mut handle = stdout.lock();
-                for result in &results {
-                    writeln!(handle, "{}", result.path)?;
-                    handle.flush()?;
-                }
-            } else {
+    // 如果不是流式输出，现在输出所有结果
+    if !stream {
+        // 模糊搜索时按相关度排序
+        if use_fuzzy {
+            results.sort_by(|a, b| {
+                let a_name = a.path.to_lowercase();
+                let b_name = b.path.to_lowercase();
+                let pattern_lower = pattern.to_lowercase();
+                
+                // 包含匹配度排序
+                let a_score = if a_name.starts_with(&pattern_lower) { 2 } 
+                             else if a_name.contains(&pattern_lower) { 1 } 
+                             else { 0 };
+                let b_score = if b_name.starts_with(&pattern_lower) { 2 } 
+                             else if b_name.contains(&pattern_lower) { 1 } 
+                             else { 0 };
+                
+                b_score.cmp(&a_score)
+            });
+        }
+        
+        // 输出结果
+        match format {
+            OutputFormat::Text => {
                 for result in &results {
                     println!("{}", result.path);
                 }
             }
-        }
-        OutputFormat::Json => {
-            if stream {
-                // 流式 JSON - JSONL 格式 (每行一个 JSON 对象)
-                let stdout = io::stdout();
-                let mut handle = stdout.lock();
-                for result in &results {
-                    let json_line = serde_json::to_string(result)?;
-                    writeln!(handle, "{}", json_line)?;
-                    handle.flush()?;
-                }
-            } else {
+            OutputFormat::Json => {
                 let output = serde_json::json!({
                     "results": results,
                     "total": results.len(),
+                    "scanned": scanned,
                     "error": null
                 });
                 println!("{}", output);
             }
         }
+        
+        eprintln!("搜索完成：共找到 {} 个结果（扫描了 {} 个文件）", results.len(), scanned);
+    } else {
+        // 流式输出完成
+        stream_output.finish()?;
     }
     
     Ok(())

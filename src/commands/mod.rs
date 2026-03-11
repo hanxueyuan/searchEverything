@@ -5,3 +5,4 @@ pub mod copy;
 pub mod move_file;
 pub mod delete;
 pub mod index;
+pub mod audit;

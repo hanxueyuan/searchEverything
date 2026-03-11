@@ -66,6 +66,10 @@ enum Commands {
         /// 流式输出（实时显示结果）
         #[arg(long)]
         stream: bool,
+        
+        /// 分页大小（流式模式下每页显示的结果数）
+        #[arg(long)]
+        page_size: Option<usize>,
     },
     
     /// 查看文件信息
@@ -129,6 +133,12 @@ enum Commands {
     /// 快速索引状态
     IndexStatus,
     
+    /// 审计日志管理
+    Audit {
+        #[command(subcommand)]
+        action: AuditAction,
+    },
+    
     /// 配置管理
     Config {
         #[command(subcommand)]
@@ -168,6 +178,64 @@ enum ConfigAction {
     
     /// 验证配置文件
     Validate,
+}
+
+#[derive(Subcommand, Debug)]
+enum AuditAction {
+    /// 列出最近的日志
+    List {
+        /// 最大显示数量
+        #[arg(short, long, default_value = "20")]
+        limit: usize,
+        
+        /// 命令过滤
+        #[arg(long)]
+        command: Option<String>,
+    },
+    
+    /// 搜索日志
+    Search {
+        /// 命令过滤
+        #[arg(long)]
+        command: Option<String>,
+        
+        /// 开始时间 (RFC3339 格式)
+        #[arg(long)]
+        after: Option<String>,
+        
+        /// 结束时间 (RFC3339 格式)
+        #[arg(long)]
+        before: Option<String>,
+        
+        /// 结果过滤 (success/error)
+        #[arg(long)]
+        result: Option<String>,
+        
+        /// 最大显示数量
+        #[arg(short, long, default_value = "100")]
+        limit: usize,
+    },
+    
+    /// 导出日志
+    Export {
+        /// 导出格式 (json/csv)
+        #[arg(short, long, default_value = "json")]
+        format: String,
+        
+        /// 输出文件路径
+        #[arg(short, long)]
+        output: PathBuf,
+    },
+    
+    /// 显示统计信息
+    Stats,
+    
+    /// 清理旧日志
+    Cleanup {
+        /// 保留天数
+        #[arg(long, default_value = "30")]
+        days: u32,
+    },
 }
 
 
@@ -256,10 +324,10 @@ fn main() -> Result<()> {
     let _command_name = format!("{:?}", cli.command);
     
     match cli.command {
-        Commands::Search { pattern, path, limit, format, type_, regex, fuzzy, stream } => {
+        Commands::Search { pattern, path, limit, format, type_, regex, fuzzy, stream, page_size } => {
             use output::OutputFormat;
             let entry = AuditLogEntry::new("search", vec![pattern.clone(), path.display().to_string()]);
-            search::execute(&pattern, &path, limit, &format, &type_, regex, fuzzy, stream)?;
+            search::execute(&pattern, &path, limit, &format, &type_, regex, fuzzy, stream, page_size)?;
             audit_logger.log_success(&entry.with_duration(start_time.elapsed().as_millis() as u64))?;
         }
         Commands::Info { file, json } => {
@@ -285,6 +353,16 @@ fn main() -> Result<()> {
         }
         Commands::Config { action } => {
             handle_config(action)?;
+        }
+        Commands::Audit { action } => {
+            use commands::audit::AuditAction as AuditCmdAction;
+            commands::audit::execute(&match action {
+                crate::AuditAction::List { limit, command } => AuditCmdAction::List { limit, command },
+                crate::AuditAction::Search { command, after, before, result, limit } => AuditCmdAction::Search { command, after, before, result, limit },
+                crate::AuditAction::Export { format, output } => AuditCmdAction::Export { format, output },
+                crate::AuditAction::Stats => AuditCmdAction::Stats,
+                crate::AuditAction::Cleanup { days } => AuditCmdAction::Cleanup { days },
+            })?;
         }
         Commands::SkillTest => {
             skill_test::run_skill_test()?;
