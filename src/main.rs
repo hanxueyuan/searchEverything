@@ -9,6 +9,7 @@ mod config;
 mod error;
 mod audit;
 mod file_index;
+mod skill_test;
 pub mod output;
 
 use commands::{search, info, cat, copy, move_file, delete, index as index_cmd};
@@ -131,6 +132,10 @@ enum Commands {
         #[command(subcommand)]
         action: ConfigAction,
     },
+    
+    /// Skill 测试
+    #[command(hide = true)]
+    SkillTest,
 }
 
 #[derive(Subcommand, Debug)]
@@ -231,7 +236,7 @@ fn main() -> Result<()> {
     );
     
     // 获取命令名称用于审计
-    let command_name = format!("{:?}", cli.command);
+    let _command_name = format!("{:?}", cli.command);
     
     match cli.command {
         Commands::Search { pattern, path, limit, format, type_, regex, fuzzy, stream } => {
@@ -263,6 +268,9 @@ fn main() -> Result<()> {
         }
         Commands::Config { action } => {
             handle_config(action)?;
+        }
+        Commands::SkillTest => {
+            skill_test::run_skill_test()?;
         }
     }
     
