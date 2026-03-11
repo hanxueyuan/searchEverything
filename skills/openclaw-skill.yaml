@@ -2,12 +2,13 @@ name: searchEverything
 description: |
   本地文件搜索和管理 CLI 工具（纯命令行，无 GUI）。
   使用场景：搜索文件、查看文件信息、读取文件内容、文件操作（复制/移动/删除）。
-  命令：se search, se info, se cat, se copy, se move, se delete, se index
-  安装位置：/usr/local/bin/se 或 ~/.cargo/bin/se
+  命令：searchEverything search, searchEverything info, searchEverything cat, searchEverything copy, 等
+  安装位置：/usr/local/bin/searchEverything 或 ~/.cargo/bin/searchEverything
+  支持三种搜索模式：通配符（默认）、正则表达式（--regex）、模糊搜索（--fuzzy）
   
 commands:
   - name: search
-    description: 搜索文件（支持通配符 * 和 ?）
+    description: 搜索文件（支持通配符 * 和 ?、正则表达式、模糊搜索）
     trigger_patterns:
       - "搜索.*文件"
       - "查找.*"
@@ -15,12 +16,12 @@ commands:
       - "找.*文件"
       - ".*在哪里"
       - ".*在哪个目录"
-    template: "se search '{pattern}' --path {path} --limit {limit} --format json"
+    template: "searchEverything search '{pattern}' --path {path} --limit {limit} --format json{regex_flag}{fuzzy_flag}"
     parameters:
       - name: pattern
         type: string
         required: true
-        description: 搜索模式，支持通配符（如 *.pdf, report*.docx）
+        description: 搜索模式，支持通配符（如 *.pdf, report*.docx）、正则表达式或模糊关键词
         examples:
           - "*.pdf"
           - "report*"
@@ -43,6 +44,22 @@ commands:
           - 10
           - 50
           - 100
+      - name: regex_flag
+        type: string
+        required: false
+        default: ""
+        description: 使用正则表达式模式（--regex）
+        examples:
+          - ""
+          - " --regex"
+      - name: fuzzy_flag
+        type: string
+        required: false
+        default: ""
+        description: 使用模糊搜索模式（--fuzzy）
+        examples:
+          - ""
+          - " --fuzzy"
 
   - name: info
     description: 查看文件详细信息（大小、修改时间、权限等）

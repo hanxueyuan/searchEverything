@@ -3,6 +3,7 @@ use crate::output::{OutputFormat, SearchResult};
 use anyhow::Result;
 use std::path::Path;
 use walkdir::WalkDir;
+use regex::Regex;
 
 pub fn execute(
     pattern: &str,
@@ -10,21 +11,41 @@ pub fn execute(
     limit: usize,
     format: &OutputFormat,
     _type_: &crate::FileType,
+    use_regex: bool,
+    use_fuzzy: bool,
 ) -> Result<()> {
     let mut results = Vec::new();
     
-    // 简单的 glob 匹配
-    let pattern_lower = pattern.to_lowercase();
+    // 编译正则表达式（如果需要）
+    let regex_pattern = if use_regex {
+        Some(Regex::new(pattern)?)
+    } else {
+        None
+    };
     
     for entry in WalkDir::new(path)
         .into_iter()
         .filter_map(|e| e.ok())
-        .take(limit * 2)
+        .take(limit * 10)  // 多取一些用于模糊排序
     {
         let file_name = entry.file_name().to_string_lossy();
+        let mut matched = false;
         
-        // 简单的通配符匹配
-        if matches_pattern(&pattern_lower, &file_name.to_lowercase()) {
+        // 根据模式匹配
+        if use_regex {
+            // 正则模式
+            if let Some(ref re) = regex_pattern {
+                matched = re.is_match(&file_name);
+            }
+        } else if use_fuzzy {
+            // 模糊搜索（简单实现：包含匹配）
+            matched = file_name.to_lowercase().contains(&pattern.to_lowercase());
+        } else {
+            // 通配符模式（默认）
+            matched = matches_pattern(&pattern.to_lowercase(), &file_name.to_lowercase());
+        }
+        
+        if matched {
             let metadata = entry.metadata()?;
             results.push(SearchResult {
                 path: entry.path().to_string_lossy().to_string(),
@@ -37,6 +58,25 @@ pub fn execute(
                 break;
             }
         }
+    }
+    
+    // 模糊搜索时按相关度排序
+    if use_fuzzy {
+        results.sort_by(|a, b| {
+            let a_name = a.path.to_lowercase();
+            let b_name = b.path.to_lowercase();
+            let pattern_lower = pattern.to_lowercase();
+            
+            // 包含匹配度排序
+            let a_score = if a_name.starts_with(&pattern_lower) { 2 } 
+                         else if a_name.contains(&pattern_lower) { 1 } 
+                         else { 0 };
+            let b_score = if b_name.starts_with(&pattern_lower) { 2 } 
+                         else if b_name.contains(&pattern_lower) { 1 } 
+                         else { 0 };
+            
+            b_score.cmp(&a_score)
+        });
     }
     
     // 输出结果

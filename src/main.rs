@@ -39,12 +39,20 @@ enum Commands {
         limit: usize,
         
         /// 输出格式
-        #[arg(short, long, value_enum, default_value = "text")]
+        #[arg(short, long, value_enum, default_value = "json")]
         format: OutputFormat,
         
         /// 文件类型过滤
         #[arg(short, long, value_enum, default_value = "both")]
         type_: FileType,
+        
+        /// 使用正则表达式
+        #[arg(long)]
+        regex: bool,
+        
+        /// 使用模糊搜索
+        #[arg(long)]
+        fuzzy: bool,
     },
     
     /// 查看文件信息

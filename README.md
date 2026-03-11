@@ -1,45 +1,85 @@
 # searchEverything
 
-A cross-platform file search CLI tool with OpenClaw integration.
+跨平台文件搜索 CLI 工具，支持 OpenClaw 集成。
 
-## 快速开始
+## 特性
 
-### 安装
+- 🔍 **三种搜索模式**：通配符（默认）、正则表达式、模糊搜索
+- ⚡ **高性能**：Rust 实现，内存索引
+- 🖥️ **跨平台**：Windows/Linux/macOS
+- 🤖 **OpenClaw 集成**：JSON 输出，大模型友好
+- 📁 **索引管理**：手动添加/移除索引目录
+
+## 安装
 
 ```bash
 # 从源码编译
 cargo build --release
 
 # 复制二进制到 PATH
-cp target/release/se /usr/local/bin/
+cp target/release/searchEverything /usr/local/bin/
+
+# 验证安装
+searchEverything --version
 ```
 
-### 基本用法
+## 基本用法
+
+### 搜索文件
 
 ```bash
-# 搜索文件
-se search "*.pdf" --path D:/work
+# 通配符模式（默认）
+searchEverything search "*.pdf" --path D:/work
+searchEverything search "report*"
 
-# 快速搜索（别名）
-se "*.rs"
+# 正则表达式模式
+searchEverything search --regex ".*\.pdf$"
+searchEverything search --regex "report-\d{4}\.docx"
 
-# JSON 输出（OpenClaw 集成）
-se search "*.md" --format json
+# 模糊搜索
+searchEverything search --fuzzy "repot"  # 匹配 report
+searchEverything search --fuzzy "readme"  # 匹配 README.md
 
+# JSON 输出（OpenClaw 集成，默认）
+searchEverything search "*.md" --format json
+```
+
+### 文件操作
+
+```bash
 # 查看文件信息
-se info README.md
+searchEverything info README.md
+searchEverything info D:/work/report.pdf --json
 
 # 读取文件内容
-se cat config.yaml --lines 50
+searchEverything cat config.yaml
+searchEverything cat app.log --lines 50  # 前 50 行
+searchEverything cat app.log --tail --lines 10  # 末尾 10 行
 
-# 文件操作
-se copy "*.txt" /backup/
-se move temp.zip /archive/
-se delete "*.tmp" --force
+# 复制/移动/删除
+searchEverything copy "*.txt" /backup/
+searchEverything move temp.zip /archive/
+searchEverything delete "*.tmp" --force
+```
 
-# 索引管理
-se index status
-se index rebuild --path D:/
+### 索引管理
+
+```bash
+# 添加索引目录
+searchEverything index add --path D:/work
+searchEverything index add --path /home/user/documents
+
+# 查看已索引目录
+searchEverything index list
+
+# 移除索引目录
+searchEverything index remove --path D:/work
+
+# 重建索引
+searchEverything index rebuild --path D:/work
+
+# 索引状态
+searchEverything index status
 ```
 
 ## OpenClaw Skill 集成
@@ -58,37 +98,86 @@ openclaw skills register searchEverything
 
 ```
 用户：搜索工作目录的 PDF 文件
-→ se search "*.pdf" --path D:/work --format json
+→ searchEverything search "*.pdf" --path D:/work --format json
+
+用户：用正则搜索 2024 年的报告
+→ searchEverything search --regex "report-2024.*\.docx"
+
+用户：模糊查找 readme 文件
+→ searchEverything search --fuzzy "readme"
 
 用户：查看这个文件的信息
-→ se info D:/work/report.pdf
+→ searchEverything info D:/work/report.pdf
 
 用户：读取昨天的会议记录
-→ se cat meeting-notes.md --lines 50
+→ searchEverything cat meeting-notes.md --lines 50
 
 用户：把这些文件复制到备份目录
-→ se copy "D:/work/*.txt" "D:/backup/"
+→ searchEverything copy "D:/work/*.txt" "D:/backup/"
+```
+
+## 输出格式
+
+### JSON 输出（默认，大模型友好）
+
+```json
+{
+  "success": true,
+  "data": {
+    "results": [
+      {
+        "path": "/home/user/document.pdf",
+        "size": 1048576,
+        "size_human": "1.0 MB",
+        "modified": "2026-03-10T14:30:00Z",
+        "is_dir": false
+      }
+    ],
+    "total": 1,
+    "search_time_ms": 45
+  },
+  "error": null
+}
+```
+
+### 错误响应
+
+```json
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "文件未找到",
+    "details": "路径 /not/exist 不存在",
+    "suggestion": "请检查路径是否正确，或使用 searchEverything search 搜索文件"
+  }
+}
 ```
 
 ## 命令参考
 
 | 命令 | 说明 | 示例 |
 |------|------|------|
-| `se search <pattern>` | 搜索文件 | `se "*.pdf" --path D:/work` |
-| `se info <file>` | 查看文件信息 | `se info README.md` |
-| `se cat <file>` | 读取文件内容 | `se cat config.yaml --lines 50` |
-| `se copy <src> <dest>` | 复制文件 | `se copy "*.txt" /backup/` |
-| `se move <src> <dest>` | 移动文件 | `se move temp.zip /archive/` |
-| `se delete <path>` | 删除文件 | `se delete "*.tmp" --force` |
-| `se index status` | 索引状态 | `se index status` |
-| `se index rebuild` | 重建索引 | `se index rebuild --path D:/` |
+| `searchEverything search <pattern>` | 搜索文件 | `searchEverything search "*.pdf" --path D:/work` |
+| `searchEverything search --regex <pattern>` | 正则搜索 | `searchEverything search --regex ".*\.pdf$"` |
+| `searchEverything search --fuzzy <pattern>` | 模糊搜索 | `searchEverything search --fuzzy "repot"` |
+| `searchEverything info <file>` | 查看文件信息 | `searchEverything info README.md` |
+| `searchEverything cat <file>` | 读取文件内容 | `searchEverything cat config.yaml --lines 50` |
+| `searchEverything copy <src> <dest>` | 复制文件 | `searchEverything copy "*.txt" /backup/` |
+| `searchEverything move <src> <dest>` | 移动文件 | `searchEverything move temp.zip /archive/` |
+| `searchEverything delete <path>` | 删除文件 | `searchEverything delete "*.tmp" --force` |
+| `searchEverything index add` | 添加索引目录 | `searchEverything index add --path D:/work` |
+| `searchEverything index remove` | 移除索引目录 | `searchEverything index remove --path D:/work` |
+| `searchEverything index list` | 列出索引目录 | `searchEverything index list` |
+| `searchEverything index rebuild` | 重建索引 | `searchEverything index rebuild --path D:/` |
 
 ## 技术栈
 
 - **语言**: Rust
 - **CLI 解析**: clap
 - **序列化**: serde + serde_json
-- **文件搜索**: walkdir + glob
+- **文件搜索**: walkdir + glob + regex
 - **跨平台**: Windows USN / Linux inotify
 
 ## 开发
