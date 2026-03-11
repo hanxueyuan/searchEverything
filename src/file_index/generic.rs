@@ -5,7 +5,7 @@
 /// - 初始扫描建立索引
 /// - 无实时监控
 
-use super::{Index, IndexBuilder, IndexStats, FileRecord};
+use super::{TrieIndex, IndexBuilder, FileRecord};
 use anyhow::Result;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -23,12 +23,13 @@ impl GenericIndexBuilder {
         use walkdir::WalkDir;
         
         let mut records = Vec::new();
+        let mut file_id_counter: usize = 0;
         
         if should_exclude(&path.to_string_lossy(), exclude_paths) {
             return Ok(records);
         }
         
-        println!("扫描目录：{}", path.display());
+        tracing::debug!("扫描目录：{}", path.display());
         
         for entry in WalkDir::new(path)
             .into_iter()
@@ -49,7 +50,9 @@ impl GenericIndexBuilder {
                 is_dir: metadata.is_dir(),
                 modified: metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH),
                 created: metadata.created().ok(),
+                id: file_id_counter,
             };
+            file_id_counter += 1;
             
             records.push(record);
         }
@@ -59,8 +62,8 @@ impl GenericIndexBuilder {
 }
 
 impl IndexBuilder for GenericIndexBuilder {
-    fn build(&self, paths: &[PathBuf], exclude_paths: &[String]) -> Result<Index> {
-        let mut index = Index::new();
+    fn build(&self, paths: &[PathBuf], exclude_paths: &[String]) -> Result<TrieIndex> {
+        let mut index = TrieIndex::new();
         let start_time = std::time::Instant::now();
         
         // 扫描所有路径

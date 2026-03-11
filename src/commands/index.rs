@@ -1,7 +1,10 @@
 use anyhow::Result;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs;
 use serde::{Serialize, Deserialize};
+use crate::file_index::{IndexManager, TrieIndex, IndexPersistence};
+use crate::file_index::persistence::get_default_index_path;
+use crate::file_index::linux::{start_watch, get_linux_system_excludes};
 
 /// 索引配置
 #[derive(Serialize, Deserialize, Clone)]
@@ -21,7 +24,7 @@ impl IndexConfig {
             let content = fs::read_to_string(config_path)?;
             Ok(serde_yaml::from_str(&content)?)
         } else {
-            // 首次启动，自动索引所有系统路径
+            // 首次启动，自动初始化
             let config = Self::auto_init();
             config.save()?;
             Ok(config)
@@ -34,7 +37,6 @@ impl IndexConfig {
         // 自动检测系统路径
         #[cfg(target_os = "windows")]
         {
-            // Windows: 检测所有盘符
             for drive in 'C'..='Z' {
                 let path = format!("{}:/", drive);
                 if Path::new(&path).exists() {
@@ -45,7 +47,7 @@ impl IndexConfig {
         
         #[cfg(target_os = "linux")]
         {
-            // Linux: 索引常用用户目录
+            // Linux: 索引用户目录和常用路径
             let user_dirs = [
                 "/home",
                 "/opt",
@@ -61,7 +63,6 @@ impl IndexConfig {
         
         #[cfg(target_os = "macos")]
         {
-            // macOS: 索引用户目录
             let user_dirs = [
                 "/Users",
                 "/Applications",
@@ -73,19 +74,23 @@ impl IndexConfig {
             }
         }
         
+        // 默认排除路径
+        let mut excluded_paths = vec![
+            #[cfg(target_os = "windows")]
+            "C:/Windows".to_string(),
+            #[cfg(target_os = "windows")]
+            "C:/Program Files".to_string(),
+        ];
+        
+        // 添加 Linux 系统排除
+        #[cfg(target_os = "linux")]
+        {
+            excluded_paths.extend(get_linux_system_excludes());
+        }
+        
         Self {
             indexed_paths,
-            excluded_paths: vec![
-                // 默认排除系统目录
-                #[cfg(target_os = "windows")]
-                "C:/Windows".to_string(),
-                #[cfg(target_os = "windows")]
-                "C:/Program Files".to_string(),
-                #[cfg(target_os = "linux")]
-                "/proc".to_string(),
-                #[cfg(target_os = "linux")]
-                "/sys".to_string(),
-            ],
+            excluded_paths,
             initialized: true,
         }
     }
@@ -138,37 +143,73 @@ pub fn execute(action: &crate::IndexAction) -> Result<()> {
                 println!();
             }
             
-            // 显示索引统计（TODO: 实现后添加）
-            println!("索引统计:");
-            println!("  文件总数：待实现");
-            println!("  索引大小：待实现");
-            println!("  最后更新：待实现");
+            // 尝试加载索引统计
+            let index_path = get_default_index_path();
+            if index_path.exists() {
+                if let Ok(metadata) = fs::metadata(&index_path) {
+                    println!("索引文件:");
+                    println!("  路径：{}", index_path.display());
+                    println!("  大小：{:.2} KB", metadata.len() as f64 / 1024.0);
+                    println!("  修改时间：{}", 
+                        metadata.modified()
+                            .ok()
+                            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                            .map(|d| format!("{:?} 前", d.as_secs()))
+                            .unwrap_or_else(|| "未知".to_string())
+                    );
+                }
+            }
         }
         
         crate::IndexAction::Rebuild { path } => {
             println!("正在重建索引...");
             
-            let mut config = IndexConfig::load()?;
-            
-            if path.to_str() != Some(".") {
-                // 重建特定路径
-                println!("重建路径：{}", path.display());
-                // TODO: 实现特定路径重建
+            let config = IndexConfig::load()?;
+            let paths_to_index = if path.to_str() != Some(".") {
+                vec![path.clone()]
             } else {
-                // 重建所有路径
-                for indexed_path in &config.indexed_paths {
-                    println!("  索引：{}", indexed_path);
-                    // TODO: 实现索引逻辑
-                }
-            }
+                config.indexed_paths.iter().map(PathBuf::from).collect()
+            };
+            
+            // 创建索引管理器（带持久化）
+            let mut manager = IndexManager::with_persistence(
+                get_default_index_path(),
+                300, // 5 分钟自动保存
+            )?;
+            
+            // 构建索引
+            let index = manager.build_index(&paths_to_index, &config.excluded_paths)?;
             
             println!("索引完成！");
+            println!("  文件总数：{}", index.stats.total_files);
+            println!("  目录总数：{}", index.stats.total_dirs);
+            println!("  索引大小：{:.2} KB", index.stats.index_size_mb * 1024.0);
+            println!("  构建时间：{}", index.stats.built_at);
         }
         
         crate::IndexAction::Watch { path } => {
-            println!("启动实时监控：{}", path.display());
-            println!("按 Ctrl+C 停止监控");
-            // TODO: 实现 inotify/USN 监控
+            let config = IndexConfig::load()?;
+            
+            // 确定监控路径
+            let paths_to_watch = if path.to_str() != Some(".") {
+                vec![path.clone()]
+            } else {
+                config.indexed_paths.iter().map(PathBuf::from).collect()
+            };
+            
+            // 尝试加载现有索引
+            let mut manager = IndexManager::with_persistence(
+                get_default_index_path(),
+                60, // 1 分钟自动保存
+            )?;
+            
+            // 加载或构建索引
+            let _ = manager.load_or_build(&paths_to_watch, &config.excluded_paths);
+            
+            // 获取索引可变引用并启动监控
+            if let Some(index) = manager.get_index_mut() {
+                start_watch(&paths_to_watch, &config.excluded_paths, index)?;
+            }
         }
         
         crate::IndexAction::Add { path } => {
@@ -179,6 +220,9 @@ pub fn execute(action: &crate::IndexAction) -> Result<()> {
                 config.indexed_paths.push(path_str.clone());
                 config.save()?;
                 println!("已添加索引路径：{}", path_str);
+                
+                // 提示用户重建索引
+                println!("提示：运行 'se index rebuild' 以重建索引");
             } else {
                 println!("路径已在索引中：{}", path_str);
             }
@@ -237,4 +281,25 @@ pub fn execute(action: &crate::IndexAction) -> Result<()> {
     }
     
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_config_load_and_save() {
+        let config = IndexConfig::auto_init();
+        
+        assert!(config.initialized);
+        assert!(!config.indexed_paths.is_empty());
+        
+        // 验证 Linux 排除路径
+        #[cfg(target_os = "linux")]
+        {
+            assert!(config.excluded_paths.contains(&"/proc".to_string()));
+            assert!(config.excluded_paths.contains(&"/sys".to_string()));
+            assert!(config.excluded_paths.contains(&"/dev".to_string()));
+        }
+    }
 }

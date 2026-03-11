@@ -12,6 +12,7 @@ mod context;
 mod file_index;
 mod skill_test;
 pub mod output;
+pub mod tests;
 
 use commands::{search, info, cat, copy, move_file, delete, index as index_cmd};
 use config::ConfigManager;

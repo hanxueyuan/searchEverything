@@ -5,7 +5,7 @@
 /// - FSEvents 监控实时更新
 /// - 系统级通知，低开销
 
-use super::{Index, IndexBuilder, FileRecord};
+use super::{TrieIndex, IndexBuilder, FileRecord, IndexStats};
 use anyhow::Result;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -28,12 +28,13 @@ impl MacOsIndexBuilder {
         use walkdir::WalkDir;
         
         let mut records = Vec::new();
+        let mut file_id_counter: usize = 0;
         
         if should_exclude(&path.to_string_lossy(), exclude_paths) {
             return Ok(records);
         }
         
-        println!("扫描目录：{}", path.display());
+        tracing::debug!("扫描目录：{}", path.display());
         
         for entry in WalkDir::new(path)
             .into_iter()
@@ -54,7 +55,9 @@ impl MacOsIndexBuilder {
                 is_dir: metadata.is_dir(),
                 modified: metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH),
                 created: metadata.created().ok(),
+                id: file_id_counter,
             };
+            file_id_counter += 1;
             
             records.push(record);
         }
@@ -64,8 +67,8 @@ impl MacOsIndexBuilder {
 }
 
 impl IndexBuilder for MacOsIndexBuilder {
-    fn build(&self, paths: &[PathBuf], exclude_paths: &[String]) -> Result<Index> {
-        let mut index = Index::new();
+    fn build(&self, paths: &[PathBuf], exclude_paths: &[String]) -> Result<TrieIndex> {
+        let mut index = TrieIndex::new();
         let start_time = std::time::Instant::now();
         
         // 初始扫描
@@ -140,11 +143,9 @@ fn should_exclude(path: &str, exclude_paths: &[String]) -> bool {
     
     // macOS 默认排除
     let default_excludes = [
-        "/Volumes",
-        "/Network",
-        "/dev",
-        "/proc",
-        "/private/var/folders",
+        "/System",
+        "/Library",
+        "/Applications",
     ];
     
     default_excludes.iter().any(|&e| path_lower.starts_with(e))

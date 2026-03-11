@@ -1,0 +1,30 @@
+[Unit]
+Description=searchEverything File Index Service
+Documentation=https://github.com/searchEverything/searchEverything
+After=network.target local-fs.target
+
+[Service]
+Type=simple
+User=%H
+ExecStart=/usr/local/bin/se index watch /home
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=searcheverything
+
+# 资源限制
+MemoryMax=512M
+CPUQuota=50%
+
+# 安全加固
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+
+# 允许写入索引文件
+ReadWritePaths=/home/%H/.config/searchEverything
+
+[Install]
+WantedBy=multi-user.target

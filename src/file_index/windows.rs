@@ -5,7 +5,7 @@
 /// - 使用 USN Journal 实时监控文件变更
 /// - 秒级索引建立，几乎零磁盘 I/O
 
-use super::{Index, IndexBuilder, FileRecord};
+use super::{TrieIndex, IndexBuilder, FileRecord};
 use anyhow::Result;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -31,12 +31,13 @@ impl MftIndexBuilder {
         use walkdir::WalkDir;
         
         let mut records = Vec::new();
+        let mut file_id_counter: usize = 0;
         
         if should_exclude(&path.to_string_lossy(), exclude_paths) {
             return Ok(records);
         }
         
-        println!("扫描目录：{}", path.display());
+        tracing::debug!("扫描目录：{}", path.display());
         
         for entry in WalkDir::new(path)
             .into_iter()
@@ -57,7 +58,9 @@ impl MftIndexBuilder {
                 is_dir: metadata.is_dir(),
                 modified: metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH),
                 created: metadata.created().ok(),
+                id: file_id_counter,
             };
+            file_id_counter += 1;
             
             records.push(record);
         }
@@ -67,8 +70,8 @@ impl MftIndexBuilder {
 }
 
 impl IndexBuilder for MftIndexBuilder {
-    fn build(&self, paths: &[PathBuf], exclude_paths: &[String]) -> Result<Index> {
-        let mut index = Index::new();
+    fn build(&self, paths: &[PathBuf], exclude_paths: &[String]) -> Result<TrieIndex> {
+        let mut index = TrieIndex::new();
         let start_time = std::time::Instant::now();
         
         // Windows: 尝试使用 MFT (TODO: 实现 MFT 读取)
@@ -144,11 +147,10 @@ fn should_exclude(path: &str, exclude_paths: &[String]) -> bool {
     
     // Windows 默认排除
     let default_excludes = [
-        "$recycle.bin",
-        "system volume information",
-        "$windows.~bt",
-        "windows.old",
+        "c:/windows",
+        "c:/program files",
+        "c:/program files (x86)",
     ];
     
-    default_excludes.iter().any(|&e| path_lower.contains(&e))
+    default_excludes.iter().any(|&e| path_lower.starts_with(e))
 }
