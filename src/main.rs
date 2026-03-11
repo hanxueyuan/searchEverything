@@ -8,9 +8,10 @@ mod commands;
 mod config;
 mod error;
 mod audit;
+mod file_index;
 pub mod output;
 
-use commands::{search, info, cat, copy, move_file, delete, index};
+use commands::{search, info, cat, copy, move_file, delete, index as index_cmd};
 use config::ConfigManager;
 use audit::{AuditLogger, AuditLogEntry};
 pub use output::OutputFormat;
@@ -255,10 +256,10 @@ fn main() -> Result<()> {
             delete::execute(&path, force)?;
         }
         Commands::Index { action } => {
-            index::execute(&action)?;
+            index_cmd::execute(&action)?;
         }
         Commands::IndexStatus => {
-            index::execute(&crate::IndexAction::Status)?;
+            index_cmd::execute(&crate::IndexAction::Status)?;
         }
         Commands::Config { action } => {
             handle_config(action)?;
