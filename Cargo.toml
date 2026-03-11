@@ -1,0 +1,46 @@
+[package]
+name = "searchEverything"
+version = "0.1.0"
+edition = "2021"
+description = "A cross-platform file search CLI tool with OpenClaw integration"
+license = "MIT"
+
+[dependencies]
+# CLI 解析
+clap = { version = "4.4", features = ["derive"] }
+
+# 序列化
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# 异步
+tokio = { version = "1.35", features = ["full"] }
+
+# 错误处理
+anyhow = "1.0"
+thiserror = "1.0"
+
+# 文件系统
+walkdir = "2.4"
+glob = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
+
+# 日志
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Windows USN
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.52", features = ["Win32_Storage_FileSystem", "Win32_Foundation"] }
+
+# Linux inotify
+[target.'cfg(target_os = "linux")'.dependencies]
+notify = "6.1"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.0"
+
+[[bin]]
+name = "se"
+path = "src/main.rs"
