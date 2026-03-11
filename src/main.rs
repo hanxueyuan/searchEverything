@@ -8,6 +8,7 @@ mod commands;
 mod config;
 mod error;
 mod audit;
+mod context;
 mod file_index;
 mod skill_test;
 pub mod output;
@@ -136,6 +137,10 @@ enum Commands {
     /// Skill 测试
     #[command(hide = true)]
     SkillTest,
+    
+    /// 显示上下文信息
+    #[command(hide = true)]
+    Context,
 }
 
 #[derive(Subcommand, Debug)]
@@ -271,6 +276,9 @@ fn main() -> Result<()> {
         }
         Commands::SkillTest => {
             skill_test::run_skill_test()?;
+        }
+        Commands::Context => {
+            context::print_context()?;
         }
     }
     
