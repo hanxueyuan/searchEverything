@@ -141,6 +141,17 @@ enum Commands {
     /// 显示上下文信息
     #[command(hide = true)]
     Context,
+    
+    /// 显示结构化帮助
+    Help {
+        /// 命令名称
+        #[arg(default_value = "")]
+        command: String,
+        
+        /// JSON 格式输出
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -280,6 +291,75 @@ fn main() -> Result<()> {
         Commands::Context => {
             context::print_context()?;
         }
+        Commands::Help { command, json } => {
+            if json {
+                print_help_json(&command)?;
+            } else {
+                print_help_text(&command)?;
+            }
+        }
+    }
+    
+    Ok(())
+}
+
+/// 打印 JSON 格式帮助
+fn print_help_json(command: &str) -> Result<()> {
+    use serde_json::json;
+    
+    let help = if command.is_empty() {
+        json!({
+            "name": "searchEverything",
+            "version": env!("CARGO_PKG_VERSION"),
+            "description": "跨平台文件搜索 CLI 工具",
+            "commands": [
+                {"name": "search", "description": "搜索文件", "aliases": ["s"]},
+                {"name": "info", "description": "查看文件信息"},
+                {"name": "cat", "description": "读取文件内容"},
+                {"name": "copy", "description": "复制文件"},
+                {"name": "move", "description": "移动文件"},
+                {"name": "delete", "description": "删除文件"},
+                {"name": "index", "description": "索引管理"},
+                {"name": "config", "description": "配置管理"},
+                {"name": "context", "description": "显示上下文信息"},
+                {"name": "help", "description": "显示帮助"},
+            ]
+        })
+    } else {
+        // TODO: 返回具体命令的详细帮助
+        json!({
+            "command": command,
+            "description": "命令详细信息",
+            "usage": format!("searchEverything {} [OPTIONS]", command),
+            "options": []
+        })
+    };
+    
+    println!("{}", serde_json::to_string_pretty(&help)?);
+    Ok(())
+}
+
+/// 打印文本格式帮助
+fn print_help_text(command: &str) -> Result<()> {
+    if command.is_empty() {
+        println!("searchEverything v{}", env!("CARGO_PKG_VERSION"));
+        println!("跨平台文件搜索 CLI 工具\n");
+        println!("用法：searchEverything <COMMAND>\n");
+        println!("命令:");
+        println!("  search    搜索文件");
+        println!("  info      查看文件信息");
+        println!("  cat       读取文件内容");
+        println!("  copy      复制文件");
+        println!("  move      移动文件");
+        println!("  delete    删除文件");
+        println!("  index     索引管理");
+        println!("  config    配置管理");
+        println!("  context   显示上下文信息");
+        println!("  help      显示帮助");
+        println!("\n使用 'searchEverything help <command>' 查看具体命令帮助");
+    } else {
+        println!("命令：{}", command);
+        println!("使用 'searchEverything {} --help' 查看详细选项", command);
     }
     
     Ok(())

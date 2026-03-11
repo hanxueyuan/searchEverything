@@ -22,3 +22,5 @@ src/file_index/macos.rs:
 src/file_index/generic.rs:
 src/skill_test.rs:
 src/output.rs:
+
+# env-dep:CARGO_PKG_VERSION=0.1.0
