@@ -1,0 +1,474 @@
+# OpenClaw Skill: file-search
+# 类 Everything 文件搜索工具技能定义
+
+name: file-search
+version: 1.0.0
+description: |
+  跨平台文件搜索工具，支持 Linux/Windows。
+  提供类似 Everything 的快速文件搜索功能，
+  并集成大模型接口，支持自然语言搜索。
+
+author: 韩先生
+license: MIT
+
+# 技能分类
+category: system
+tags:
+  - file-search
+  - everything
+  - search
+  - file-management
+
+# 能力声明
+capabilities:
+  - name: search_files
+    description: 搜索文件（支持通配符、正则、布尔运算）
+    
+  - name: get_file_info
+    description: 获取文件详细信息（大小、时间、属性等）
+    
+  - name: read_file_content
+    description: 读取文件内容（支持多种编码）
+    
+  - name: file_operations
+    description: 文件操作（复制、移动、删除、重命名）
+    
+  - name: index_management
+    description: 索引管理（重建、统计、暂停/恢复）
+
+# 服务配置
+service:
+  type: http
+  base_url: http://localhost:8080/api/v1
+  websocket: ws://localhost:8080/ws
+  timeout_ms: 30000
+  retry_count: 3
+
+# 命令定义
+commands:
+  # ==================== 搜索命令 ====================
+  - name: search
+    description: |
+      搜索文件。支持通配符 (*, ?)、正则表达式、布尔运算 (AND/OR/NOT)。
+      示例：
+      - search("*.rs") - 搜索所有 Rust 源文件
+      - search("*.rs AND src") - 搜索 src 目录下的 Rust 文件
+      - search("regex:^test.*\\.rs$") - 正则搜索
+    parameters:
+      - name: query
+        type: string
+        required: true
+        description: 搜索关键词
+      - name: path
+        type: string
+        required: false
+        description: 限定搜索路径
+      - name: ext
+        type: array[string]
+        required: false
+        description: 文件扩展名过滤
+      - name: min_size
+        type: integer
+        required: false
+        description: 最小文件大小（字节）
+      - name: max_size
+        type: integer
+        required: false
+        description: 最大文件大小（字节）
+      - name: modified_after
+        type: string
+        required: false
+        description: 修改时间之后（ISO 8601）
+      - name: modified_before
+        type: string
+        required: false
+        description: 修改时间之前（ISO 8601）
+      - name: limit
+        type: integer
+        required: false
+        default: 100
+        description: 返回结果数量
+      - name: offset
+        type: integer
+        required: false
+        default: 0
+        description: 偏移量（分页）
+      - name: sort_by
+        type: string
+        required: false
+        default: name
+        enum: [name, path, size, modified, created]
+        description: 排序字段
+      - name: sort_order
+        type: string
+        required: false
+        default: asc
+        enum: [asc, desc]
+        description: 排序方向
+    endpoint:
+      method: POST
+      path: /search
+    response_transform: |
+      {
+        "success": data.success,
+        "total": data.total,
+        "results": data.results.map(f => ({
+          "path": f.path,
+          "name": f.name,
+          "size": f.size,
+          "is_directory": f.isDirectory,
+          "modified": f.modified
+        }))
+      }
+
+  # ==================== 文件信息命令 ====================
+  - name: get_file_info
+    description: |
+      获取文件详细信息。
+      示例：get_file_info("/home/user/projects/main.rs")
+    parameters:
+      - name: path
+        type: string
+        required: true
+        description: 文件路径
+    endpoint:
+      method: POST
+      path: /file/info
+    response_transform: |
+      {
+        "success": data.success,
+        "file": {
+          "path": data.file.path,
+          "name": data.file.name,
+          "size": data.file.size,
+          "is_directory": data.file.isDirectory,
+          "created": data.file.created,
+          "modified": data.file.modified,
+          "accessed": data.file.accessed,
+          "attributes": data.file.attributes
+        }
+      }
+
+  # ==================== 读取文件命令 ====================
+  - name: read_file
+    description: |
+      读取文件内容。支持多种编码。
+      示例：read_file("/home/user/projects/main.rs", "utf-8")
+    parameters:
+      - name: path
+        type: string
+        required: true
+        description: 文件路径
+      - name: encoding
+        type: string
+        required: false
+        default: utf-8
+        enum: [utf-8, gbk, gb2312, big5, iso-8859-1, ascii]
+        description: 文件编码
+      - name: limit
+        type: integer
+        required: false
+        default: 1048576
+        description: 最大读取字节数
+    endpoint:
+      method: POST
+      path: /file/read
+    response_transform: |
+      {
+        "success": data.success,
+        "content": data.content,
+        "encoding": data.encoding,
+        "size": data.size,
+        "truncated": data.truncated
+      }
+
+  # ==================== 文件操作命令 ====================
+  - name: copy_file
+    description: |
+      复制文件或目录。
+      示例：copy_file("/src/file.rs", "/dst/file.rs")
+    parameters:
+      - name: source
+        type: string
+        required: true
+        description: 源文件路径
+      - name: destination
+        type: string
+        required: true
+        description: 目标路径
+      - name: overwrite
+        type: boolean
+        required: false
+        default: false
+        description: 是否覆盖已存在文件
+    endpoint:
+      method: POST
+      path: /file/copy
+
+  - name: move_file
+    description: |
+      移动文件或目录。
+      示例：move_file("/src/file.rs", "/dst/file.rs")
+    parameters:
+      - name: source
+        type: string
+        required: true
+        description: 源文件路径
+      - name: destination
+        type: string
+        required: true
+        description: 目标路径
+    endpoint:
+      method: POST
+      path: /file/move
+
+  - name: delete_file
+    description: |
+      删除文件或目录。
+      示例：delete_file("/tmp/old_file.rs")
+      示例：delete_file("/tmp/old_dir", recursive=true)
+    parameters:
+      - name: path
+        type: string
+        required: true
+        description: 文件/目录路径
+      - name: recursive
+        type: boolean
+        required: false
+        default: false
+        description: 是否递归删除目录
+      - name: skip_trash
+        type: boolean
+        required: false
+        default: false
+        description: 是否跳过回收站直接删除
+    endpoint:
+      method: POST
+      path: /file/delete
+
+  - name: rename_file
+    description: |
+      重命名文件或目录。
+      示例：rename_file("/src/main.rs", "main_backup.rs")
+    parameters:
+      - name: path
+        type: string
+        required: true
+        description: 文件路径
+      - name: new_name
+        type: string
+        required: true
+        description: 新文件名
+    endpoint:
+      method: POST
+      path: /file/rename
+
+  # ==================== 索引管理命令 ====================
+  - name: rebuild_index
+    description: |
+      重建索引。可选指定路径和排除模式。
+      示例：rebuild_index()
+      示例：rebuild_index(paths=["/home/user/projects"], exclude=["*.log", "node_modules"])
+    parameters:
+      - name: paths
+        type: array[string]
+        required: false
+        description: 要索引的路径列表
+      - name: exclude
+        type: array[string]
+        required: false
+        description: 排除的文件/目录模式
+    endpoint:
+      method: POST
+      path: /index/rebuild
+
+  - name: get_index_stats
+    description: |
+      获取索引统计信息。
+      示例：get_index_stats()
+    parameters: []
+    endpoint:
+      method: GET
+      path: /index/stats
+    response_transform: |
+      {
+        "success": data.success,
+        "stats": {
+          "total_files": data.stats.totalFiles,
+          "total_directories": data.stats.totalDirectories,
+          "total_size": data.stats.totalSize,
+          "indexed_paths": data.stats.indexedPaths,
+          "last_update": data.stats.lastUpdate,
+          "memory_usage": data.stats.memoryUsage
+        }
+      }
+
+  - name: pause_index
+    description: |
+      暂停索引更新。
+      示例：pause_index()
+    parameters: []
+    endpoint:
+      method: POST
+      path: /index/pause
+
+  - name: resume_index
+    description: |
+      恢复索引更新。
+      示例：resume_index()
+    parameters: []
+    endpoint:
+      method: POST
+      path: /index/resume
+
+  - name: get_index_status
+    description: |
+      获取索引服务状态。
+      示例：get_index_status()
+    parameters: []
+    endpoint:
+      method: GET
+      path: /index/status
+
+# 自然语言理解配置
+nlu:
+  intents:
+    - name: search_files
+      examples:
+        - "帮我找一下 *.rs 文件"
+        - "搜索所有 Rust 源文件"
+        - "查找 src 目录下的所有代码文件"
+        - "找一下最近修改的文档"
+        - "搜索包含 test 的文件名"
+      slots:
+        - query
+        - path
+        - ext
+        - modified_after
+        - modified_before
+
+    - name: get_file_info
+      examples:
+        - "查看这个文件的信息"
+        - "这个文件多大？"
+        - "这个文件什么时候创建的？"
+      slots:
+        - path
+
+    - name: read_file
+      examples:
+        - "读取这个文件的内容"
+        - "打开这个文件看看"
+        - "显示文件内容"
+      slots:
+        - path
+        - encoding
+
+    - name: copy_file
+      examples:
+        - "把这个文件复制到..."
+        - "备份这个文件到..."
+      slots:
+        - source
+        - destination
+
+    - name: move_file
+      examples:
+        - "把这个文件移动到..."
+        - "移动文件到..."
+      slots:
+        - source
+        - destination
+
+    - name: delete_file
+      examples:
+        - "删除这个文件"
+        - "删掉这个文件"
+        - "清理这个目录"
+      slots:
+        - path
+        - recursive
+
+    - name: index_management
+      examples:
+        - "重建索引"
+        - "更新文件索引"
+        - "索引状态怎么样？"
+        - "暂停索引更新"
+      slots:
+        - action  # rebuild/stats/pause/resume
+
+# 安全配置
+security:
+  # 允许访问的路径前缀
+  allowed_path_prefixes:
+    - /home
+    - /Users
+    - /data
+    - /workspace
+  
+  # 禁止访问的路径
+  blocked_paths:
+    - /etc
+    - /root
+    - /proc
+    - /sys
+    - /boot
+  
+  # 危险操作需要确认
+  dangerous_operations:
+    - delete_file
+    - rebuild_index
+  
+  # 最大读取文件大小（MB）
+  max_read_size_mb: 10
+  
+  # 最大返回结果数
+  max_search_results: 1000
+
+# 错误处理
+error_handling:
+  FILE_NOT_FOUND:
+    message: "文件不存在，请检查路径是否正确"
+    retry: false
+  
+  PERMISSION_DENIED:
+    message: "权限不足，无法访问该文件"
+    retry: false
+  
+  PATH_TRAVERSAL:
+    message: "检测到非法路径访问，操作已阻止"
+    retry: false
+  
+  INDEX_UNAVAILABLE:
+    message: "索引服务暂时不可用，请稍后重试"
+    retry: true
+  
+  INTERNAL_ERROR:
+    message: "服务器内部错误，请稍后重试"
+    retry: true
+
+# 使用示例
+examples:
+  - description: "搜索 Rust 源文件"
+    input: "search('*.rs', path='/home/user/projects', limit=50)"
+    output: "找到 50 个 Rust 源文件"
+
+  - description: "获取文件信息"
+    input: "get_file_info('/home/user/projects/main.rs')"
+    output: "文件大小：4096 字节，创建时间：2024-01-15"
+
+  - description: "读取文件内容"
+    input: "read_file('/home/user/projects/main.rs')"
+    output: "fn main() { println!(\"Hello\"); }"
+
+  - description: "复制文件"
+    input: "copy_file('/src/main.rs', '/backup/main.rs')"
+    output: "文件复制成功"
+
+  - description: "查看索引状态"
+    input: "get_index_stats()"
+    output: "索引包含 156789 个文件，总大小 5GB"
+
+---
+# 文档结束
