@@ -112,6 +112,9 @@ enum Commands {
         #[command(subcommand)]
         action: IndexAction,
     },
+    
+    /// 快速索引状态
+    IndexStatus,
 }
 
 #[derive(Clone, ValueEnum, Serialize)]
@@ -143,6 +146,43 @@ enum IndexAction {
         #[arg(short, long, default_value = ".")]
         path: PathBuf,
     },
+    
+    /// 添加索引路径
+    Add {
+        #[arg(short, long)]
+        path: PathBuf,
+    },
+    
+    /// 移除索引路径
+    Remove {
+        #[arg(short, long)]
+        path: PathBuf,
+    },
+    
+    /// 列出索引路径
+    List,
+    
+    /// 排除路径管理
+    Exclude {
+        #[command(subcommand)]
+        action: ExcludeAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum ExcludeAction {
+    /// 添加排除路径
+    Add {
+        #[arg(short, long)]
+        path: PathBuf,
+    },
+    /// 移除排除路径
+    Remove {
+        #[arg(short, long)]
+        path: PathBuf,
+    },
+    /// 列出排除路径
+    List,
 }
 
 fn main() -> Result<()> {
@@ -175,7 +215,10 @@ fn main() -> Result<()> {
             delete::execute(&path, force)?;
         }
         Commands::Index { action } => {
-            index::execute(&action)?;
+            index::execute(action)?;
+        }
+        Commands::IndexStatus => {
+            index::execute(&crate::IndexAction::Status)?;
         }
     }
     

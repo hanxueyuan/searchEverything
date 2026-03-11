@@ -16,6 +16,7 @@ clap = { version = "4.4", features = ["derive"] }
 # 序列化
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+serde_yaml = "0.9"
 
 # 异步
 tokio = { version = "1.35", features = ["full"] }

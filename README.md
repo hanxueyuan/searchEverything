@@ -65,21 +65,33 @@ searchEverything delete "*.tmp" --force
 ### 索引管理
 
 ```bash
-# 添加索引目录
-searchEverything index add --path D:/work
-searchEverything index add --path /home/user/documents
+# 索引状态（首次启动自动索引全系统）
+searchEverything index status
 
-# 查看已索引目录
-searchEverything index list
+# 排除特定目录（隐私/系统目录）
+searchEverything index exclude add --path C:/Windows
+searchEverything index exclude add --path /proc
 
-# 移除索引目录
-searchEverything index remove --path D:/work
+# 查看排除列表
+searchEverything index exclude list
 
-# 重建索引
+# 移除排除
+searchEverything index exclude remove --path C:/Windows
+
+# 添加额外索引路径
+searchEverything index add --path /mnt/data
+
+# 移除索引路径
+searchEverything index remove --path /mnt/data
+
+# 重建索引（全量）
+searchEverything index rebuild
+
+# 重建特定路径
 searchEverything index rebuild --path D:/work
 
-# 索引状态
-searchEverything index status
+# 快速查看状态
+searchEverything index-status
 ```
 
 ## OpenClaw Skill 集成
