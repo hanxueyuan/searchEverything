@@ -4,6 +4,7 @@ use anyhow::Result;
 use std::path::Path;
 use walkdir::WalkDir;
 use regex::Regex;
+use std::io::{self, Write};
 
 pub fn execute(
     pattern: &str,
@@ -13,6 +14,7 @@ pub fn execute(
     _type_: &crate::FileType,
     use_regex: bool,
     use_fuzzy: bool,
+    stream: bool,
 ) -> Result<()> {
     let mut results = Vec::new();
     
@@ -82,17 +84,38 @@ pub fn execute(
     // 输出结果
     match format {
         OutputFormat::Text => {
-            for result in &results {
-                println!("{}", result.path);
+            if stream {
+                // 流式输出 - 找到一个输出一个
+                let stdout = io::stdout();
+                let mut handle = stdout.lock();
+                for result in &results {
+                    writeln!(handle, "{}", result.path)?;
+                    handle.flush()?;
+                }
+            } else {
+                for result in &results {
+                    println!("{}", result.path);
+                }
             }
         }
         OutputFormat::Json => {
-            let output = serde_json::json!({
-                "results": results,
-                "total": results.len(),
-                "error": null
-            });
-            println!("{}", output);
+            if stream {
+                // 流式 JSON - JSONL 格式 (每行一个 JSON 对象)
+                let stdout = io::stdout();
+                let mut handle = stdout.lock();
+                for result in &results {
+                    let json_line = serde_json::to_string(result)?;
+                    writeln!(handle, "{}", json_line)?;
+                    handle.flush()?;
+                }
+            } else {
+                let output = serde_json::json!({
+                    "results": results,
+                    "total": results.len(),
+                    "error": null
+                });
+                println!("{}", output);
+            }
         }
     }
     

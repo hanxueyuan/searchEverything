@@ -7,10 +7,12 @@ use anyhow::Result;
 mod commands;
 mod config;
 mod error;
+mod audit;
 pub mod output;
 
 use commands::{search, info, cat, copy, move_file, delete, index};
 use config::ConfigManager;
+use audit::{AuditLogger, AuditLogEntry};
 pub use output::OutputFormat;
 
 #[derive(Parser)]
@@ -26,7 +28,7 @@ struct Cli {
     verbose: bool,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 enum Commands {
     /// 搜索文件
     Search {
@@ -56,6 +58,10 @@ enum Commands {
         /// 使用模糊搜索
         #[arg(long)]
         fuzzy: bool,
+        
+        /// 流式输出（实时显示结果）
+        #[arg(long)]
+        stream: bool,
     },
     
     /// 查看文件信息
@@ -126,7 +132,7 @@ enum Commands {
     },
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 enum ConfigAction {
     /// 显示当前配置
     Show,
@@ -143,14 +149,14 @@ enum ConfigAction {
 
 
 
-#[derive(Clone, ValueEnum)]
+#[derive(Clone, ValueEnum, Debug)]
 enum FileType {
     File,
     Dir,
     Both,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 enum IndexAction {
     /// 显示索引状态
     Status,
@@ -189,7 +195,7 @@ enum IndexAction {
     },
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 enum ExcludeAction {
     /// 添加排除路径
     Add {
@@ -207,6 +213,7 @@ enum ExcludeAction {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    let start_time = std::time::Instant::now();
     
     // 初始化日志
     if cli.verbose {
@@ -215,10 +222,22 @@ fn main() -> Result<()> {
             .init();
     }
     
+    // 加载配置和审计日志
+    let config_mgr = ConfigManager::load()?;
+    let audit_logger = AuditLogger::new(
+        audit::get_default_log_path(),
+        config_mgr.get().file_operations.enable_log,
+    );
+    
+    // 获取命令名称用于审计
+    let command_name = format!("{:?}", cli.command);
+    
     match cli.command {
-        Commands::Search { pattern, path, limit, format, type_, regex, fuzzy } => {
+        Commands::Search { pattern, path, limit, format, type_, regex, fuzzy, stream } => {
             use output::OutputFormat;
-            search::execute(&pattern, &path, limit, &format, &type_, regex, fuzzy)?;
+            let entry = AuditLogEntry::new("search", vec![pattern.clone(), path.display().to_string()]);
+            search::execute(&pattern, &path, limit, &format, &type_, regex, fuzzy, stream)?;
+            audit_logger.log_success(&entry.with_duration(start_time.elapsed().as_millis() as u64))?;
         }
         Commands::Info { file, json } => {
             info::execute(&file, json)?;
