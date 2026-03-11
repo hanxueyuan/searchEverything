@@ -5,10 +5,12 @@ use std::fs;
 use anyhow::Result;
 
 mod commands;
+mod config;
 mod error;
 pub mod output;
 
 use commands::{search, info, cat, copy, move_file, delete, index};
+use config::ConfigManager;
 pub use output::OutputFormat;
 
 #[derive(Parser)]
@@ -116,6 +118,27 @@ enum Commands {
     
     /// 快速索引状态
     IndexStatus,
+    
+    /// 配置管理
+    Config {
+        #[command(subcommand)]
+        action: ConfigAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum ConfigAction {
+    /// 显示当前配置
+    Show,
+    
+    /// 编辑配置文件
+    Edit,
+    
+    /// 重置为默认配置
+    Reset,
+    
+    /// 验证配置文件
+    Validate,
 }
 
 
@@ -217,6 +240,76 @@ fn main() -> Result<()> {
         }
         Commands::IndexStatus => {
             index::execute(&crate::IndexAction::Status)?;
+        }
+        Commands::Config { action } => {
+            handle_config(action)?;
+        }
+    }
+    
+    Ok(())
+}
+
+/// 处理配置命令
+fn handle_config(action: crate::ConfigAction) -> Result<()> {
+    match action {
+        crate::ConfigAction::Show => {
+            let config_mgr = ConfigManager::load()?;
+            let config = config_mgr.get();
+            
+            println!("配置文件路径：{}", config_mgr.get_config_path().display());
+            println!();
+            println!("当前配置:");
+            println!("  搜索模式：{}", config.search.default_mode);
+            println!("  默认结果数：{}", config.search.default_limit);
+            println!("  输出格式：{}", config.output.default_format);
+            println!("  自动索引：{}", config.index.auto_index);
+            println!("  删除确认：{}", config.file_operations.delete_confirm);
+            println!("  调试模式：{}", config.advanced.debug);
+            
+            if !config.aliases.is_empty() {
+                println!();
+                println!("已定义别名:");
+                for (name, pattern) in &config.aliases {
+                    println!("  {}: {}", name, pattern);
+                }
+            }
+        }
+        
+        crate::ConfigAction::Edit => {
+            let config_mgr = ConfigManager::load()?;
+            let config_path = config_mgr.get_config_path();
+            
+            println!("配置文件：{}", config_path.display());
+            println!("请使用编辑器打开此文件进行编辑");
+            println!("例如：nano {}", config_path.display());
+        }
+        
+        crate::ConfigAction::Reset => {
+            let config_mgr = ConfigManager::load()?;
+            
+            // 创建默认配置
+            let default_config = config::Config::default();
+            let new_mgr = ConfigManager {
+                config: default_config,
+                config_path: config_mgr.get_config_path().clone(),
+            };
+            new_mgr.save()?;
+            
+            println!("配置已重置为默认值");
+            println!("配置文件：{}", new_mgr.get_config_path().display());
+        }
+        
+        crate::ConfigAction::Validate => {
+            match ConfigManager::load() {
+                Ok(config_mgr) => {
+                    println!("配置文件有效");
+                    println!("路径：{}", config_mgr.get_config_path().display());
+                }
+                Err(e) => {
+                    eprintln!("配置文件无效：{}", e);
+                    std::process::exit(1);
+                }
+            }
         }
     }
     

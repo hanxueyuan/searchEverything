@@ -1,0 +1,142 @@
+# searchEverything 配置文件
+# 用于自定义搜索行为、索引设置、输出格式等
+
+# ==================== 搜索配置 ====================
+search:
+  # 默认搜索模式：glob (通配符), regex (正则), fuzzy (模糊)
+  default_mode: glob
+  
+  # 默认最大结果数
+  default_limit: 100
+  
+  # 默认搜索路径（"." 表示当前目录，可设置多个）
+  default_paths:
+    - "."
+  
+  # 是否区分大小写
+  case_sensitive: false
+  
+  # 是否包含隐藏文件（以.开头的文件）
+  include_hidden: false
+
+# ==================== 输出配置 ====================
+output:
+  # 默认输出格式：json, text
+  default_format: json
+  
+  # JSON 输出是否美化（缩进）
+  pretty_print: false
+  
+  # 是否显示文件详细信息（大小、修改时间等）
+  show_details: true
+  
+  # 时间格式：iso (ISO 8601), unix (时间戳), local (本地时间)
+  time_format: iso
+
+# ==================== 索引配置 ====================
+index:
+  # 是否启用自动索引（首次启动时自动索引系统路径）
+  auto_index: true
+  
+  # 索引文件保存路径
+  index_file: "~/.config/searchEverything/index.bin"
+  
+  # 索引更新策略：auto (实时), manual (手动), interval (定时)
+  update_strategy: auto
+  
+  # 定时更新间隔（秒），仅在 update_strategy 为 interval 时生效
+  update_interval: 300
+  
+  # 索引包含的路径（auto_index 为 false 时使用）
+  paths:
+    # Windows 示例:
+    # - "C:/"
+    # - "D:/"
+    
+    # Linux 示例:
+    - "/home"
+    - "/opt"
+  
+  # 排除的路径（不索引）
+  exclude_paths:
+    # 系统目录
+    - "/proc"
+    - "/sys"
+    - "/dev"
+    
+    # 临时目录
+    - "/tmp"
+    - "/var/tmp"
+    
+    # 缓存目录
+    - "**/node_modules"
+    - "**/.git"
+    - "**/__pycache__"
+    - "**/*.cache"
+
+# ==================== 文件操作配置 ====================
+file_operations:
+  # 删除操作是否需要确认
+  delete_confirm: true
+  
+  # 覆盖文件前是否需要确认
+  overwrite_confirm: true
+  
+  # 批量操作最大文件数（超过需要确认）
+  batch_limit: 10
+  
+  # 是否记录操作日志
+  enable_log: true
+  
+  # 日志文件路径
+  log_file: "~/.config/searchEverything/operations.log"
+
+# ==================== 性能配置 ====================
+performance:
+  # 并发线程数（0 表示自动检测 CPU 核心数）
+  threads: 0
+  
+  # 单次搜索最大内存使用（MB）
+  max_memory_mb: 512
+  
+  # 是否使用内存映射优化大文件读取
+  use_mmap: true
+
+# ==================== 别名配置 ====================
+# 自定义搜索别名，方便快速搜索
+aliases:
+  # 格式：别名：搜索模式
+  docs: "*.md *.txt *.doc *.docx *.pdf"
+  code: "*.rs *.py *.js *.ts *.go *.java *.cpp *.c *.h"
+  images: "*.jpg *.jpeg *.png *.gif *.bmp *.svg"
+  videos: "*.mp4 *.avi *.mkv *.mov *.wmv"
+  audio: "*.mp3 *.wav *.flac *.aac"
+  archives: "*.zip *.tar *.gz *.rar *.7z"
+
+# ==================== OpenClaw Skill 配置 ====================
+openclaw:
+  # 是否启用 Skill 集成
+  enabled: true
+  
+  # Skill 名称
+  skill_name: searchEverything
+  
+  # 命令前缀（用于生成命令模板）
+  command_prefix: "searchEverything"
+  
+  # 是否记录 Skill 调用日志
+  log_invocations: true
+
+# ==================== 高级配置 ====================
+advanced:
+  # 是否启用调试模式
+  debug: false
+  
+  # 是否显示详细错误信息
+  verbose_errors: true
+  
+  # 自定义正则表达式引擎：rust (默认), pcre2
+  regex_engine: rust
+  
+  # 是否启用实验性功能
+  experimental: false
