@@ -1,4 +1,5 @@
 use serde::Serialize;
+use clap::ValueEnum;
 
 #[derive(Serialize, Clone)]
 pub struct SearchResult {
@@ -8,7 +9,7 @@ pub struct SearchResult {
     pub is_dir: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, ValueEnum, Serialize, Debug)]
 pub enum OutputFormat {
     Text,
     Json,

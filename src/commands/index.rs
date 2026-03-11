@@ -207,12 +207,10 @@ pub fn execute(action: &crate::IndexAction) -> Result<()> {
         }
         
         crate::IndexAction::Exclude { action: exclude_action } => {
-            use crate::commands::index::ExcludeAction::*;
-            
             let mut config = IndexConfig::load()?;
             
             match exclude_action {
-                Add { path } => {
+                crate::ExcludeAction::Add { ref path } => {
                     let path_str = path.to_string_lossy().to_string();
                     if !config.excluded_paths.contains(&path_str) {
                         config.excluded_paths.push(path_str.clone());
@@ -220,7 +218,7 @@ pub fn execute(action: &crate::IndexAction) -> Result<()> {
                         println!("已添加排除路径：{}", path_str);
                     }
                 }
-                Remove { path } => {
+                crate::ExcludeAction::Remove { ref path } => {
                     let path_str = path.to_string_lossy().to_string();
                     if let Some(pos) = config.excluded_paths.iter().position(|p| p == &path_str) {
                         config.excluded_paths.remove(pos);
@@ -228,7 +226,7 @@ pub fn execute(action: &crate::IndexAction) -> Result<()> {
                         println!("已移除排除路径：{}", path_str);
                     }
                 }
-                List => {
+                crate::ExcludeAction::List => {
                     println!("排除路径:");
                     for path in &config.excluded_paths {
                         println!("  {}", path);
@@ -239,21 +237,4 @@ pub fn execute(action: &crate::IndexAction) -> Result<()> {
     }
     
     Ok(())
-}
-
-/// 排除操作
-#[derive(clap::Subcommand)]
-pub enum ExcludeAction {
-    /// 添加排除路径
-    Add {
-        #[arg(short, long)]
-        path: std::path::PathBuf,
-    },
-    /// 移除排除路径
-    Remove {
-        #[arg(short, long)]
-        path: std::path::PathBuf,
-    },
-    /// 列出排除路径
-    List,
 }

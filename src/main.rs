@@ -6,9 +6,10 @@ use anyhow::Result;
 
 mod commands;
 mod error;
-mod output;
+pub mod output;
 
 use commands::{search, info, cat, copy, move_file, delete, index};
+pub use output::OutputFormat;
 
 #[derive(Parser)]
 #[command(name = "se")]
@@ -40,7 +41,7 @@ enum Commands {
         
         /// 输出格式
         #[arg(short, long, value_enum, default_value = "json")]
-        format: OutputFormat,
+        format: output::OutputFormat,
         
         /// 文件类型过滤
         #[arg(short, long, value_enum, default_value = "both")]
@@ -117,11 +118,7 @@ enum Commands {
     IndexStatus,
 }
 
-#[derive(Clone, ValueEnum, Serialize)]
-enum OutputFormat {
-    Text,
-    Json,
-}
+
 
 #[derive(Clone, ValueEnum)]
 enum FileType {
@@ -196,8 +193,9 @@ fn main() -> Result<()> {
     }
     
     match cli.command {
-        Commands::Search { pattern, path, limit, format, type_ } => {
-            search::execute(&pattern, &path, limit, &format, &type_)?;
+        Commands::Search { pattern, path, limit, format, type_, regex, fuzzy } => {
+            use output::OutputFormat;
+            search::execute(&pattern, &path, limit, &format, &type_, regex, fuzzy)?;
         }
         Commands::Info { file, json } => {
             info::execute(&file, json)?;
@@ -215,7 +213,7 @@ fn main() -> Result<()> {
             delete::execute(&path, force)?;
         }
         Commands::Index { action } => {
-            index::execute(action)?;
+            index::execute(&action)?;
         }
         Commands::IndexStatus => {
             index::execute(&crate::IndexAction::Status)?;
