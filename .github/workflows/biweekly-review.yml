@@ -1,0 +1,46 @@
+name: Biweekly Review
+
+on:
+  schedule:
+    # 每两周执行一次（周一 09:00 UTC / 17:00 上海）
+    - cron: '0 9 */14 * 1'
+  workflow_dispatch:  # 支持手动触发
+
+jobs:
+  review-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Review Issues
+        id: issues
+        run: |
+          ./scripts/review-issues.sh
+          echo "count=$(cat /tmp/issues-count.txt 2>/dev/null || echo 0)" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  review-prs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Review PRs
+        id: prs
+        run: |
+          ./scripts/review-prs.sh
+          echo "count=$(cat /tmp/prs-count.txt 2>/dev/null || echo 0)" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  generate-report:
+    needs: [review-issues, review-prs]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Report
+        run: |
+          echo "## Biweekly Review Report" > review-report.md
+          echo "Generated at: $(date)" >> review-report.md
+          echo "" >> review-report.md
+          echo "Issues reviewed: ${{ needs.review-issues.outputs.count }}" >> review-report.md
+          echo "PRs reviewed: ${{ needs.review-prs.outputs.count }}" >> review-report.md
+          cat review-report.md
