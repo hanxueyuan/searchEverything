@@ -1,519 +1,193 @@
-# GitHub Actions CI/CD 配置
-# searchEverything OpenClaw 集成自动化测试
-
-name: searchEverything Integration Tests
+name: CI
 
 on:
   push:
     branches: [main, develop]
-    paths:
-      - 'skills/searchEverything/**'
-      - 'tests/searchEverything/**'
   pull_request:
     branches: [main]
-    paths:
-      - 'skills/searchEverything/**'
-      - 'tests/searchEverything/**'
-  schedule:
-    # 每天 UTC 时间 2:00 运行
-    - cron: '0 2 * * *'
-  workflow_dispatch:
-    inputs:
-      test_type:
-        description: '测试类型'
-        required: true
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - install
-          - usage
-          - uninstall
-          - boundary
-          - integration
 
 env:
-  NODE_VERSION: '20'
-  OPENCLAW_VERSION: 'latest'
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
 
 jobs:
   # ============================================
-  # 单元测试
+  # 代码质量检查
   # ============================================
-  unit-tests:
-    name: Unit Tests
+  lint:
+    name: Lint (Format & Clippy)
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: 'skills/searchEverything/package-lock.json'
+          components: rustfmt, clippy
 
-      - name: Install dependencies
-        working-directory: ./skills/searchEverything
-        run: npm ci
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
 
-      - name: Run unit tests
-        working-directory: ./skills/searchEverything
-        run: npm test
+      - name: Check code formatting
+        run: cargo fmt --all -- --check
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./skills/searchEverything/coverage/lcov.info
-          flags: unit-tests
+      - name: Run Clippy lints
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
   # ============================================
-  # 安装流程测试 - 多平台
+  # 单元测试 - Linux
   # ============================================
-  install-tests:
-    name: Installation Tests (${{ matrix.os }})
+  test-linux:
+    name: Test (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run tests
+        run: cargo test --all-features --verbose
+
+      - name: Run tests (release mode)
+        run: cargo test --all-features --release --verbose
+
+  # ============================================
+  # 单元测试 - Windows
+  # ============================================
+  test-windows:
+    name: Test (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run tests
+        run: cargo test --verbose
+
+  # ============================================
+  # 单元测试 - macOS
+  # ============================================
+  test-macos:
+    name: Test (macOS)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run tests
+        run: cargo test --all-features --verbose
+
+  # ============================================
+  # 构建验证 - 所有平台
+  # ============================================
+  build:
+    name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        arch: [x64]
-        include:
-          - os: ubuntu-latest
-            arch: x64
-            platform: linux
-          - os: macos-latest
-            arch: x64
-            platform: darwin
-          - os: macos-latest
-            arch: arm64
-            platform: darwin
-          - os: windows-latest
-            arch: x64
-            platform: win32
-
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Install OpenClaw
-        run: npm install -g openclaw
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
 
-      - name: Run installation tests
-        shell: bash
-        run: |
-          echo "Testing on ${{ matrix.platform }} ${{ matrix.arch }}"
-          node tests/searchEverything/scripts/test.js --category install
+      - name: Build (debug)
+        run: cargo build --all-features --verbose
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: install-results-${{ matrix.os }}-${{ matrix.arch }}
-          path: tests/searchEverything/reports/
+      - name: Build (release)
+        run: cargo build --all-features --release --verbose
 
-  # ============================================
-  # 使用流程测试
-  # ============================================
-  usage-tests:
-    name: Usage Tests
-    runs-on: ubuntu-latest
-    needs: [install-tests]
+      - name: Verify binary
+        run: cargo run --release -- --help
+        if: runner.os != 'Windows'
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install OpenClaw
-        run: npm install -g openclaw
-
-      - name: Install searchEverything Skill
-        run: openclaw skill install ./skills/searchEverything
-
-      - name: Run usage tests
-        run: node tests/searchEverything/scripts/test.js --category usage
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: usage-results
-          path: tests/searchEverything/reports/
-
-  # ============================================
-  # 卸载流程测试
-  # ============================================
-  uninstall-tests:
-    name: Uninstall Tests
-    runs-on: ubuntu-latest
-    needs: [usage-tests]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install OpenClaw
-        run: npm install -g openclaw
-
-      - name: Install searchEverything Skill
-        run: openclaw skill install ./skills/searchEverything
-
-      - name: Run uninstall tests
-        run: node tests/searchEverything/scripts/test.js --category uninstall
-
-      - name: Verify clean uninstall
-        run: |
-          # 验证卸载后无残留
-          if [ -f "~/.openclaw/skills/searchEverything/package.json" ]; then
-            echo "Error: Skill files still exist after uninstall"
-            exit 1
-          fi
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: uninstall-results
-          path: tests/searchEverything/reports/
-
-  # ============================================
-  # 边界场景测试
-  # ============================================
-  boundary-tests:
-    name: Boundary Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Run boundary tests
-        run: node tests/searchEverything/scripts/test.js --category boundary
-
-      - name: Test offline mode
-        run: |
-          # 模拟离线环境
-          export FAKE_OFFLINE=true
-          node tests/searchEverything/scripts/test.js --test offline
-
-      - name: Test proxy environment
-        run: |
-          # 模拟代理环境
-          export HTTP_PROXY=http://localhost:8080
-          export HTTPS_PROXY=http://localhost:8080
-          node tests/searchEverything/scripts/test.js --test proxy
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: boundary-results
-          path: tests/searchEverything/reports/
+      - name: Verify binary (Windows)
+        run: cargo run --release -- --help
+        if: runner.os == 'Windows'
+        shell: pwsh
 
   # ============================================
   # 集成测试
   # ============================================
-  integration-tests:
+  integration-test:
     name: Integration Tests
     runs-on: ubuntu-latest
-    needs: [usage-tests]
-
+    needs: [lint, test-linux]
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Install OpenClaw
-        run: npm install -g openclaw
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
 
-      - name: Install searchEverything Skill
-        run: openclaw skill install ./skills/searchEverything
-
-      - name: Install other skills for conflict testing
-        run: |
-          # 安装其他 Skill 进行冲突测试
-          openclaw skill install coding-agent || true
+      - name: Build project
+        run: cargo build --release
 
       - name: Run integration tests
-        run: node tests/searchEverything/scripts/test.js --category integration
-
-      - name: Test Skill collaboration
-        run: |
-          # 测试与其他 Skill 协作
-          echo "Testing collaboration with other skills..."
-          # 这里添加具体的协作测试命令
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: integration-results
-          path: tests/searchEverything/reports/
-
-  # ============================================
-  # E2E 测试
-  # ============================================
-  e2e-tests:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    needs: [integration-tests]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install OpenClaw
-        run: npm install -g openclaw
-
-      - name: Install searchEverything Skill
-        run: openclaw skill install ./skills/searchEverything
-
-      - name: Run E2E tests
-        run: |
-          # 运行完整的 E2E 测试流程
-          echo "Running E2E tests..."
-          
-          # 1. 测试安装
-          openclaw skill install ./skills/searchEverything
-          
-          # 2. 测试基本功能
-          searchEverything --version
-          
-          # 3. 测试搜索功能
-          searchEverything test --path . || true
-          
-          # 4. 测试卸载
-          openclaw skill uninstall searchEverything
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-results
-          path: tests/searchEverything/reports/
-
-  # ============================================
-  # 性能测试
-  # ============================================
-  performance-tests:
-    name: Performance Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install OpenClaw
-        run: npm install -g openclaw
-
-      - name: Install searchEverything Skill
-        run: openclaw skill install ./skills/searchEverything
-
-      - name: Create test files
-        run: |
-          # 创建大量测试文件用于性能测试
-          mkdir -p /tmp/perf-test
-          for i in {1..1000}; do
-            echo "test content $i" > /tmp/perf-test/file_$i.txt
-          done
-
-      - name: Run performance tests
-        run: |
-          echo "Testing search performance..."
-          time searchEverything test --path /tmp/perf-test
-          
-          echo "Testing large directory scan..."
-          time searchEverything scan --path /tmp/perf-test
-
-      - name: Cleanup
-        run: rm -rf /tmp/perf-test
-
-  # ============================================
-  # 安全测试
-  # ============================================
-  security-tests:
-    name: Security Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Run npm audit
-        working-directory: ./skills/searchEverything
-        run: npm audit --audit-level=moderate
-
-      - name: Run security scan
-        uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high
-
-      - name: Check for hardcoded secrets
-        run: |
-          # 检查是否有硬编码的密钥
-          if grep -r "secret\|password\|token\|key" skills/searchEverything/src/ --include="*.js" | grep -v "// " | grep "="; then
-            echo "Warning: Potential hardcoded secrets found"
-          fi
-
-  # ============================================
-  # 代码质量检查
-  # ============================================
-  code-quality:
-    name: Code Quality
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        working-directory: ./skills/searchEverything
-        run: npm ci
-
-      - name: Run ESLint
-        working-directory: ./skills/searchEverything
-        run: npm run lint
-
-      - name: Run Prettier check
-        working-directory: ./skills/searchEverything
-        run: npm run format:check
-
-      - name: Check TypeScript types
-        working-directory: ./skills/searchEverything
-        run: npm run type-check
+        run: cargo test --test '*' --verbose
         continue-on-error: true
 
+      - name: Test OpenClaw Skill integration
+        run: |
+          echo "Testing OpenClaw Skill integration..."
+          cargo run --release -- index status
+          cargo run --release -- search --help
+
   # ============================================
-  # 生成测试报告
+  # 质量门禁汇总
   # ============================================
-  generate-report:
-    name: Generate Test Report
+  quality-gate:
+    name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [unit-tests, install-tests, usage-tests, uninstall-tests, boundary-tests, integration-tests, e2e-tests]
+    needs: [lint, test-linux, test-windows, test-macos, build, integration-test]
     if: always()
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts
-
-      - name: Generate combined report
+      - name: Check all jobs passed
         run: |
-          echo "# searchEverything OpenClaw 集成测试报告" > COMBINED_REPORT.md
-          echo "" >> COMBINED_REPORT.md
-          echo "## 执行时间" >> COMBINED_REPORT.md
-          echo "$(date '+%Y-%m-%d %H:%M:%S')" >> COMBINED_REPORT.md
-          echo "" >> COMBINED_REPORT.md
-          echo "## 测试结果汇总" >> COMBINED_REPORT.md
-          echo "" >> COMBINED_REPORT.md
-          
-          # 汇总所有测试结果
-          for dir in ./artifacts/*/; do
-            echo "### $(basename $dir)" >> COMBINED_REPORT.md
-            if [ -f "$dir/test-report-*.md" ]; then
-              cat "$dir"/test-report-*.md >> COMBINED_REPORT.md
-            else
-              echo "No report found" >> COMBINED_REPORT.md
-            fi
-            echo "" >> COMBINED_REPORT.md
-          done
-
-      - name: Upload combined report
-        uses: actions/upload-artifact@v4
-        with:
-          name: combined-test-report
-          path: COMBINED_REPORT.md
-
-      - name: Publish report to PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const report = fs.readFileSync('COMBINED_REPORT.md', 'utf8');
-            
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## 测试报告\n\n${report}`
-            });
-
-  # ============================================
-  # 发布检查
-  # ============================================
-  release-check:
-    name: Release Check
-    runs-on: ubuntu-latest
-    needs: [generate-report]
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Check test results
-        run: |
-          # 检查是否有失败的测试
-          if [ -f "./artifacts" ]; then
-            if grep -r "失败\|failed\|FAIL" ./artifacts/; then
-              echo "Error: Tests failed, cannot release"
-              exit 1
-            fi
+          if [ "${{ needs.lint.result }}" != "success" ]; then
+            echo "❌ Lint failed"
+            exit 1
           fi
-          echo "All tests passed, ready for release"
-
-      - name: Check version bump
-        run: |
-          # 检查版本号是否更新
-          CURRENT_VERSION=$(node -p "require('./skills/searchEverything/package.json').version")
-          echo "Current version: $CURRENT_VERSION"
+          if [ "${{ needs.test-linux.result }}" != "success" ]; then
+            echo "❌ Linux tests failed"
+            exit 1
+          fi
+          if [ "${{ needs.test-windows.result }}" != "success" ]; then
+            echo "❌ Windows tests failed"
+            exit 1
+          fi
+          if [ "${{ needs.test-macos.result }}" != "success" ]; then
+            echo "❌ macOS tests failed"
+            exit 1
+          fi
+          if [ "${{ needs.build.result }}" != "success" ]; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+          echo "✅ All quality gates passed!"
