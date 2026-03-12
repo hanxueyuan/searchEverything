@@ -48,7 +48,7 @@
   - 处理文件创建、修改、删除、重命名事件
   - 支持断点续传（记录最后 USN）
   - 实现 UsnJournalState 用于状态管理
-- 跨平台 `se index watch` 命令
+- 跨平台 `searchEverything index watch` 命令
 
 **文件:**
 - `src/file_index/linux.rs` - 已有实现，验证通过
@@ -58,10 +58,10 @@
 **使用方法:**
 ```bash
 # Linux
-se index watch /home
+searchEverything index watch /home
 
 # Windows
-se index watch C:/work
+searchEverything index watch C:/work
 ```
 
 ---
@@ -90,10 +90,10 @@ se index watch C:/work
 **使用方法:**
 ```bash
 # 流式输出
-se search "*.log" --stream
+searchEverything search "*.log" --stream
 
 # 分页显示
-se search "*.txt" --stream --page-size 20
+searchEverything search "*.txt" --stream --page-size 20
 ```
 
 ---
@@ -140,12 +140,12 @@ se search "*.txt" --stream --page-size 20
   - 日志轮转（避免文件过大）
   - 日志统计（执行次数、成功率等）
   - 旧日志清理
-- 新增 `se audit` 命令：
-  - `se audit list` - 列出最近的日志
-  - `se audit search` - 搜索日志
-  - `se audit export` - 导出日志
-  - `se audit stats` - 显示统计信息
-  - `se audit cleanup` - 清理旧日志
+- 新增 `searchEverything audit` 命令：
+  - `searchEverything audit list` - 列出最近的日志
+  - `searchEverything audit search` - 搜索日志
+  - `searchEverything audit export` - 导出日志
+  - `searchEverything audit stats` - 显示统计信息
+  - `searchEverything audit cleanup` - 清理旧日志
 - 配置选项：
   - 日志文件大小限制（默认 10MB）
   - 日志保留天数（默认 30 天）
@@ -159,16 +159,16 @@ se search "*.txt" --stream --page-size 20
 **使用方法:**
 ```bash
 # 查看日志
-se audit list --limit 50
+searchEverything audit list --limit 50
 
 # 搜索日志
-se audit search --command search --after 2024-01-01
+searchEverything audit search --command search --after 2024-01-01
 
 # 导出日志
-se audit export --format json --output audit.json
+searchEverything audit export --format json --output audit.json
 
 # 统计信息
-se audit stats
+searchEverything audit stats
 ```
 
 ---
@@ -260,27 +260,27 @@ DEVELOPMENT_COMPLETE.md        # 新增：本报告
 
 ### 实时监控
 ```bash
-se index watch /path    # 启动实时监控
+searchEverything index watch /path    # 启动实时监控
 ```
 
 ### 流式输出
 ```bash
-se search "*.log" --stream              # 流式输出
-se search "*.txt" --stream --page-size 20  # 分页显示
+searchEverything search "*.log" --stream              # 流式输出
+searchEverything search "*.txt" --stream --page-size 20  # 分页显示
 ```
 
 ### 审计日志
 ```bash
-se audit list --limit 50                # 查看日志
-se audit search --command search        # 搜索日志
-se audit export --format json -o audit.json  # 导出
-se audit stats                          # 统计
-se audit cleanup --days 30              # 清理
+searchEverything audit list --limit 50                # 查看日志
+searchEverything audit search --command search        # 搜索日志
+searchEverything audit export --format json -o audit.json  # 导出
+searchEverything audit stats                          # 统计
+searchEverything audit cleanup --days 30              # 清理
 ```
 
 ### Skill 测试
 ```bash
-se skill-test                             # 运行测试
+searchEverything skill-test                             # 运行测试
 ./scripts/test-skill.sh                   # 自动化测试
 ```
 

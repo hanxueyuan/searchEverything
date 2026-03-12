@@ -69,7 +69,7 @@ commands:
       - "这个文件.*"
       - ".*多大"
       - ".*什么时候修改"
-    template: "se info {file_path}{json_flag}"
+    template: "searchEverything info {file_path}{json_flag}"
     parameters:
       - name: file_path
         type: string
@@ -95,7 +95,7 @@ commands:
       - "查看内容"
       - "显示.*内容"
       - ".*里面是什么"
-    template: "se cat {file_path}{lines_flag}{tail_flag}"
+    template: "searchEverything cat {file_path}{lines_flag}{tail_flag}"
     parameters:
       - name: file_path
         type: string
@@ -128,7 +128,7 @@ commands:
       - "复制.*"
       - "拷贝.*"
       - "把这个.*到.*"
-    template: "se copy {source} {dest}"
+    template: "searchEverything copy {source} {dest}"
     parameters:
       - name: source
         type: string
@@ -151,7 +151,7 @@ commands:
       - "移动.*"
       - "剪切.*"
       - "把这个.*移到.*"
-    template: "se move {source} {dest}"
+    template: "searchEverything move {source} {dest}"
     parameters:
       - name: source
         type: string
@@ -175,7 +175,7 @@ commands:
       - "移除.*"
       - "不要.*了"
       - "清理.*"
-    template: "se delete {path}{force_flag}"
+    template: "searchEverything delete {path}{force_flag}"
     parameters:
       - name: path
         type: string
@@ -199,7 +199,7 @@ commands:
       - "索引状态"
       - "索引.*怎么样"
       - "索引更新.*"
-    template: "se index status"
+    template: "searchEverything index status"
     parameters: []
 
   - name: index_rebuild
@@ -208,7 +208,7 @@ commands:
       - "重建索引"
       - "更新索引"
       - "刷新索引"
-    template: "se index rebuild --path {path}"
+    template: "searchEverything index rebuild --path {path}"
     parameters:
       - name: path
         type: string
@@ -225,37 +225,37 @@ commands:
 ### 搜索文件
 ```
 用户：搜索工作目录的 PDF 文件
-→ se search "*.pdf" --path D:/work --format json
+→ searchEverything search "*.pdf" --path D:/work --format json
 
 用户：查找所有 Rust 源代码
-→ se search "*.rs" --format json
+→ searchEverything search "*.rs" --format json
 
 用户：report 文件在哪里
-→ se search "report*" --format json
+→ searchEverything search "report*" --format json
 ```
 
 ### 查看文件
 ```
 用户：查看这个文件的信息
-→ se info D:/work/report.pdf
+→ searchEverything info D:/work/report.pdf
 
 用户：README 里面是什么
-→ se cat README.md --lines 50
+→ searchEverything cat README.md --lines 50
 
 用户：显示日志文件末尾 10 行
-→ se cat app.log --tail --lines 10
+→ searchEverything cat app.log --tail --lines 10
 ```
 
 ### 文件操作
 ```
 用户：把这些文件复制到备份目录
-→ se copy "D:/work/*.txt" "D:/backup/"
+→ searchEverything copy "D:/work/*.txt" "D:/backup/"
 
 用户：移动临时文件到归档
-→ se move temp.zip /archive/
+→ searchEverything move temp.zip /archive/
 
 用户：删除所有临时文件
-→ se delete "*.tmp" --force
+→ searchEverything delete "*.tmp" --force
 ```
 
 ## 输出格式

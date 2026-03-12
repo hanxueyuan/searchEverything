@@ -1,7 +1,6 @@
 /// 上下文信息管理模块
-/// 
+///
 /// 提供命令执行的上下文数据，帮助大模型理解当前状态
-
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -73,9 +72,7 @@ impl ExecutionContext {
     /// 创建新的执行上下文
     pub fn new() -> Result<Self> {
         Ok(Self {
-            cwd: std::env::current_dir()?
-                .to_string_lossy()
-                .to_string(),
+            cwd: std::env::current_dir()?.to_string_lossy().to_string(),
             user: whoami::username(),
             platform: PlatformInfo::new(),
             system: SystemInfo::new()?,
@@ -83,32 +80,32 @@ impl ExecutionContext {
             suggestions: Vec::new(),
         })
     }
-    
+
     /// 添加建议
     pub fn add_suggestion(&mut self, suggestion: &str) {
         self.suggestions.push(suggestion.to_string());
     }
-    
+
     /// 生成错误建议
     pub fn generate_error_suggestions(&mut self, error: &str) {
         let error_lower = error.to_lowercase();
-        
+
         if error_lower.contains("权限") || error_lower.contains("permission") {
             self.add_suggestion("使用 sudo 或以管理员身份运行");
             self.add_suggestion("检查文件权限设置");
         }
-        
+
         if error_lower.contains("未找到") || error_lower.contains("not found") {
             self.add_suggestion("使用 searchEverything search 搜索文件");
             self.add_suggestion("检查路径是否正确");
         }
-        
+
         if error_lower.contains("索引") || error_lower.contains("index") {
             self.add_suggestion("运行 searchEverything index rebuild 重建索引");
             self.add_suggestion("使用 searchEverything index status 查看索引状态");
         }
     }
-    
+
     /// 转换为 JSON 字符串
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
@@ -158,17 +155,17 @@ fn get_index_strategy() -> String {
     {
         "MFT/USN".to_string()
     }
-    
+
     #[cfg(target_os = "linux")]
     {
         "inotify".to_string()
     }
-    
+
     #[cfg(target_os = "macos")]
     {
         "FSEvents".to_string()
     }
-    
+
     #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
     {
         "generic".to_string()
@@ -191,19 +188,19 @@ fn get_total_memory() -> Result<u64> {
             }
         }
     }
-    
+
     #[cfg(target_os = "macos")]
     {
         // macOS: 使用 sysctl
         // 简化实现，返回 0
     }
-    
+
     #[cfg(target_os = "windows")]
     {
         // Windows: 使用 GlobalMemoryStatusEx
         // 简化实现，返回 0
     }
-    
+
     Ok(0)
 }
 
@@ -214,7 +211,7 @@ fn get_available_memory() -> Result<u64> {
         use std::fs;
         let meminfo = fs::read_to_string("/proc/meminfo")?;
         let mut mem_available = 0u64;
-        
+
         for line in meminfo.lines() {
             if line.starts_with("MemAvailable:") {
                 let parts: Vec<&str> = line.split_whitespace().collect();
@@ -225,10 +222,10 @@ fn get_available_memory() -> Result<u64> {
                 }
             }
         }
-        
+
         return Ok(mem_available);
     }
-    
+
     Ok(0)
 }
 
@@ -241,7 +238,7 @@ pub fn get_context_json() -> Result<String> {
 /// 打印上下文信息
 pub fn print_context() -> Result<()> {
     let ctx = ExecutionContext::new()?;
-    
+
     println!("执行上下文:");
     println!("  工作目录：{}", ctx.cwd);
     println!("  用户：{}", ctx.user);
@@ -250,13 +247,13 @@ pub fn print_context() -> Result<()> {
     println!("  CPU 核心：{}", ctx.system.cpu_cores);
     println!("  总内存：{} MB", ctx.system.total_memory_mb);
     println!("  可用内存：{} MB", ctx.system.available_memory_mb);
-    
+
     if !ctx.suggestions.is_empty() {
         println!("\n建议:");
         for suggestion in &ctx.suggestions {
             println!("  - {}", suggestion);
         }
     }
-    
+
     Ok(())
 }

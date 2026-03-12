@@ -1,0 +1,187 @@
+{
+  "results": [
+    {
+      "actual_command": "search",
+      "actual_params": null,
+      "error": null,
+      "input": "搜索 PDF 文件",
+      "name": "search_basic",
+      "passed": true
+    },
+    {
+      "actual_command": "search",
+      "actual_params": null,
+      "error": null,
+      "input": "查找工作目录的文档",
+      "name": "search_find",
+      "passed": true
+    },
+    {
+      "actual_command": "search",
+      "actual_params": null,
+      "error": null,
+      "input": "有没有 report 开头的文件",
+      "name": "search_exist",
+      "passed": true
+    },
+    {
+      "actual_command": "search",
+      "actual_params": null,
+      "error": null,
+      "input": "config 文件在哪里",
+      "name": "search_where",
+      "passed": true
+    },
+    {
+      "actual_command": "info",
+      "actual_params": null,
+      "error": null,
+      "input": "查看这个文件的信息",
+      "name": "info_basic",
+      "passed": true
+    },
+    {
+      "actual_command": "info",
+      "actual_params": null,
+      "error": null,
+      "input": "README 文件多大",
+      "name": "info_size",
+      "passed": true
+    },
+    {
+      "actual_command": "cat",
+      "actual_params": null,
+      "error": null,
+      "input": "打开配置文件",
+      "name": "cat_open",
+      "passed": true
+    },
+    {
+      "actual_command": "cat",
+      "actual_params": null,
+      "error": null,
+      "input": "读取日志文件内容",
+      "name": "cat_read",
+      "passed": true
+    },
+    {
+      "actual_command": "cat",
+      "actual_params": null,
+      "error": null,
+      "input": "查看 README 里面是什么",
+      "name": "cat_content",
+      "passed": true
+    },
+    {
+      "actual_command": "copy",
+      "actual_params": null,
+      "error": null,
+      "input": "把这个文件复制到备份目录",
+      "name": "copy_basic",
+      "passed": true
+    },
+    {
+      "actual_command": "copy",
+      "actual_params": null,
+      "error": null,
+      "input": "拷贝所有 txt 文件",
+      "name": "copy_all",
+      "passed": true
+    },
+    {
+      "actual_command": "move",
+      "actual_params": null,
+      "error": null,
+      "input": "移动临时文件到归档",
+      "name": "move_basic",
+      "passed": true
+    },
+    {
+      "actual_command": "move",
+      "actual_params": null,
+      "error": null,
+      "input": "把这个文件移到回收站",
+      "name": "move_cut",
+      "passed": true
+    },
+    {
+      "actual_command": "delete",
+      "actual_params": null,
+      "error": null,
+      "input": "删除所有临时文件",
+      "name": "delete_basic",
+      "passed": true
+    },
+    {
+      "actual_command": "delete",
+      "actual_params": null,
+      "error": null,
+      "input": "移除这个文件夹",
+      "name": "delete_remove",
+      "passed": true
+    },
+    {
+      "actual_command": "delete",
+      "actual_params": null,
+      "error": null,
+      "input": "清理缓存文件",
+      "name": "delete_cleanup",
+      "passed": true
+    },
+    {
+      "actual_command": "config",
+      "actual_params": null,
+      "error": null,
+      "input": "显示当前配置",
+      "name": "config_show",
+      "passed": true
+    },
+    {
+      "actual_command": "index",
+      "actual_params": null,
+      "error": null,
+      "input": "查看索引状态",
+      "name": "index_status",
+      "passed": true
+    },
+    {
+      "actual_command": "index",
+      "actual_params": null,
+      "error": null,
+      "input": "重建索引",
+      "name": "index_rebuild",
+      "passed": true
+    },
+    {
+      "actual_command": "index",
+      "actual_params": null,
+      "error": null,
+      "input": "更新索引",
+      "name": "index_update",
+      "passed": true
+    },
+    {
+      "actual_command": null,
+      "actual_params": null,
+      "error": null,
+      "input": "今天天气怎么样",
+      "name": "negative_weather",
+      "passed": true
+    },
+    {
+      "actual_command": null,
+      "actual_params": null,
+      "error": null,
+      "input": "你好",
+      "name": "negative_greeting",
+      "passed": true
+    }
+  ],
+  "summary": {
+    "failed": 0,
+    "pass_rate": 100.0,
+    "passed": 22,
+    "total": 22
+  },
+  "timestamp": "2026-03-12T07:29:27"
+}

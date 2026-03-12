@@ -1,6 +1,5 @@
 /// Trie 索引引擎测试
-
-use crate::file_index::trie::{TrieIndex, FileRecord, TrieNode};
+use crate::file_index::trie::{FileRecord, TrieIndex, TrieNode};
 use std::path::PathBuf;
 use std::time::SystemTime;
 
@@ -21,7 +20,7 @@ fn create_test_record(name: &str, path: &str) -> FileRecord {
 #[test]
 fn test_trie_index_basic() {
     let mut index = TrieIndex::new();
-    
+
     assert!(index.is_empty());
     assert_eq!(index.len(), 0);
 }
@@ -29,13 +28,13 @@ fn test_trie_index_basic() {
 #[test]
 fn test_trie_index_add_multiple() {
     let mut index = TrieIndex::new();
-    
+
     for i in 0..100 {
         let name = format!("file{}.txt", i);
         let path = format!("/home/file{}.txt", i);
         index.add(create_test_record(&name, &path));
     }
-    
+
     assert_eq!(index.len(), 100);
     assert_eq!(index.stats.total_files, 100);
 }
@@ -43,10 +42,10 @@ fn test_trie_index_add_multiple() {
 #[test]
 fn test_trie_index_duplicate_add() {
     let mut index = TrieIndex::new();
-    
+
     index.add(create_test_record("file.txt", "/home/file.txt"));
     index.add(create_test_record("file.txt", "/home/file.txt"));
-    
+
     // 重复添加应该更新而不是新增
     assert_eq!(index.len(), 1);
 }
@@ -58,10 +57,10 @@ fn test_trie_wildcard_matching() {
     index.add(create_test_record("file.txt", "/file.txt"));
     index.add(create_test_record("document.txt", "/document.txt"));
     index.add(create_test_record("file.rs", "/file.rs"));
-    
+
     let results = index.search_glob("*.txt");
     assert_eq!(results.len(), 2);
-    
+
     let results = index.search_glob("*.rs");
     assert_eq!(results.len(), 1);
 }
@@ -69,13 +68,13 @@ fn test_trie_wildcard_matching() {
 #[test]
 fn test_trie_case_insensitive() {
     let mut index = TrieIndex::new();
-    
+
     index.add(create_test_record("TestFile.txt", "/home/TestFile.txt"));
-    
+
     // 搜索应该不区分大小写
     let results = index.search_prefix("test");
     assert_eq!(results.len(), 1);
-    
+
     let results = index.search_glob("*.TXT");
     assert_eq!(results.len(), 1);
 }
@@ -83,9 +82,9 @@ fn test_trie_case_insensitive() {
 #[test]
 fn test_trie_performance() {
     use std::time::Instant;
-    
+
     let mut index = TrieIndex::new();
-    
+
     // 添加大量文件
     let start = Instant::now();
     for i in 0..10000 {
@@ -94,18 +93,18 @@ fn test_trie_performance() {
         index.add(create_test_record(&name, &path));
     }
     let build_time = start.elapsed();
-    
+
     println!("构建 10000 个文件的索引耗时：{:?}", build_time);
-    
+
     // 测试搜索性能
     let start = Instant::now();
     for _ in 0..100 {
         let _ = index.search_prefix("file_5");
     }
     let search_time = start.elapsed();
-    
+
     println!("100 次前缀搜索耗时：{:?}", search_time);
-    
+
     // 搜索应该在合理时间内完成
     assert!(search_time.as_millis() < 1000);
 }

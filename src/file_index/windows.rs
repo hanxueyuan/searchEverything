@@ -1,5 +1,5 @@
 /// Windows MFT + USN Journal 索引构建器
-/// 
+///
 /// 利用 NTFS 文件系统特性：
 /// - 直接读取 MFT (主文件表) 建立索引
 /// - 使用 USN Journal 实时监控文件变更
@@ -10,23 +10,20 @@
 /// - 解析 USN_RECORD_V3 结构
 /// - 处理文件创建、修改、删除、重命名事件
 /// - 支持断点续传（记录最后 USN）
-
-use super::{TrieIndex, IndexBuilder, FileRecord};
-use anyhow::{Result, Context};
+use super::{FileRecord, IndexBuilder, TrieIndex};
+use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::SystemTime;
 
 #[cfg(target_os = "windows")]
 use windows::{
-    Win32::Foundation::{HANDLE, INVALID_HANDLE_VALUE, CloseHandle},
+    Win32::Foundation::{CloseHandle, HANDLE, INVALID_HANDLE_VALUE},
     Win32::Storage::FileSystem::{
-        CreateFileW, DeviceIoControl,
-        FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_SHARE_WRITE,
-        OPEN_EXISTING, GENERIC_READ, GENERIC_WRITE,
-        FSCTL_QUERY_USN_JOURNAL, FSCTL_READ_USN_JOURNAL,
-        USN_JOURNAL_DATA_V0, READ_USN_JOURNAL_DATA_V1, USN_RECORD_V3,
+        CreateFileW, DeviceIoControl, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_SHARE_WRITE,
+        FSCTL_QUERY_USN_JOURNAL, FSCTL_READ_USN_JOURNAL, GENERIC_READ, GENERIC_WRITE,
+        OPEN_EXISTING, READ_USN_JOURNAL_DATA_V1, USN_JOURNAL_DATA_V0, USN_RECORD_V3,
     },
 };
 
@@ -45,20 +42,20 @@ impl MftIndexBuilder {
             use_usn: cfg!(target_os = "windows"),
         }
     }
-    
+
     /// 扫描目录建立索引
     fn scan_directory(&self, path: &Path, exclude_paths: &[String]) -> Result<Vec<FileRecord>> {
         use walkdir::WalkDir;
-        
+
         let mut records = Vec::new();
         let mut file_id_counter: usize = 0;
-        
+
         if should_exclude(&path.to_string_lossy(), exclude_paths) {
             return Ok(records);
         }
-        
+
         tracing::debug!("扫描目录：{}", path.display());
-        
+
         for entry in WalkDir::new(path)
             .into_iter()
             .filter_entry(|e| !should_exclude(&e.path().to_string_lossy(), exclude_paths))
@@ -68,23 +65,27 @@ impl MftIndexBuilder {
                 Ok(m) => m,
                 Err(_) => continue,
             };
-            
+
             let path_buf = entry.path().to_path_buf();
-            
+
             let record = FileRecord {
                 path: path_buf,
                 name: entry.file_name().to_string_lossy().to_string(),
-                size: if metadata.is_file() { metadata.len() } else { 0 },
+                size: if metadata.is_file() {
+                    metadata.len()
+                } else {
+                    0
+                },
                 is_dir: metadata.is_dir(),
                 modified: metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH),
                 created: metadata.created().ok(),
                 id: file_id_counter,
             };
             file_id_counter += 1;
-            
+
             records.push(record);
         }
-        
+
         Ok(records)
     }
 }
@@ -93,7 +94,7 @@ impl IndexBuilder for MftIndexBuilder {
     fn build(&self, paths: &[PathBuf], exclude_paths: &[String]) -> Result<TrieIndex> {
         let mut index = TrieIndex::new();
         let start_time = std::time::Instant::now();
-        
+
         // Windows: 尝试使用 MFT (TODO: 实现 MFT 读取)
         // 目前使用扫描作为备用方案
         for path in paths {
@@ -102,24 +103,24 @@ impl IndexBuilder for MftIndexBuilder {
                 index.add(record);
             }
         }
-        
+
         // 更新统计信息
         let duration = start_time.elapsed();
         index.stats.built_at = chrono::Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
         index.stats.updated_at = index.stats.built_at.clone();
         index.stats.index_method = self.platform_name().to_string();
         index.stats.index_size_mb = (index.len() * 100) as f64 / 1024.0 / 1024.0;
-        
+
         println!(
             "索引构建完成：{} 文件，{} 目录，耗时 {:.2}s",
             index.stats.total_files,
             index.stats.total_dirs,
             duration.as_secs_f64()
         );
-        
+
         Ok(index)
     }
-    
+
     fn platform_name(&self) -> &str {
         if cfg!(target_os = "windows") {
             "Windows MFT/USN"
@@ -127,7 +128,7 @@ impl IndexBuilder for MftIndexBuilder {
             "Generic (scan)"
         }
     }
-    
+
     fn supports_realtime(&self) -> bool {
         cfg!(target_os = "windows") && self.use_usn
     }
@@ -142,21 +143,21 @@ impl Default for MftIndexBuilder {
 /// 检查路径是否应该被排除
 fn should_exclude(path: &str, exclude_paths: &[String]) -> bool {
     let path_lower = path.to_lowercase();
-    
+
     for exclude in exclude_paths {
         let exclude_lower = exclude.to_lowercase();
-        
+
         if path_lower == exclude_lower {
             return true;
         }
-        
+
         if exclude_lower.starts_with("**/") {
             let pattern = &exclude_lower[3..];
             if path_lower.contains(&pattern) {
                 return true;
             }
         }
-        
+
         if exclude_lower.ends_with("*") {
             let prefix = &exclude_lower[..exclude_lower.len() - 1];
             if path_lower.starts_with(prefix) {
@@ -164,14 +165,10 @@ fn should_exclude(path: &str, exclude_paths: &[String]) -> bool {
             }
         }
     }
-    
+
     // Windows 默认排除
-    let default_excludes = [
-        "c:/windows",
-        "c:/program files",
-        "c:/program files (x86)",
-    ];
-    
+    let default_excludes = ["c:/windows", "c:/program files", "c:/program files (x86)"];
+
     default_excludes.iter().any(|&e| path_lower.starts_with(e))
 }
 
@@ -207,24 +204,24 @@ pub fn start_usn_watch(
     index: &mut TrieIndex,
 ) -> Result<()> {
     use std::ptr::null_mut;
-    
+
     println!("启动 USN Journal 实时监控...");
     println!("监控路径:");
     for path in paths {
         println!("  - {}", path.display());
     }
     println!("按 Ctrl+C 停止监控");
-    
+
     // 创建停止标志
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
-    
+
     // 设置 Ctrl+C 处理
     ctrlc::set_handler(move || {
         println!("\n停止监控...");
         r.store(false, Ordering::SeqCst);
     })?;
-    
+
     // 打开卷句柄（以 C: 为例）
     let volume_path = "\\\\?\\C:";
     let handle = unsafe {
@@ -238,15 +235,15 @@ pub fn start_usn_watch(
             HANDLE::default(),
         )?
     };
-    
+
     if handle == INVALID_HANDLE_VALUE {
         anyhow::bail!("Failed to open volume handle");
     }
-    
+
     // 查询 USN Journal 信息
     let mut journal_data = USN_JOURNAL_DATA_V0::default();
     let mut bytes_returned: u32 = 0;
-    
+
     unsafe {
         DeviceIoControl(
             handle,
@@ -259,11 +256,11 @@ pub fn start_usn_watch(
             None,
         )?;
     }
-    
+
     println!("USN Journal ID: {}", journal_data.UsnJournalID);
     println!("First USN: {}", journal_data.FirstUsn);
     println!("Next USN: {}", journal_data.NextUsn);
-    
+
     // 从最后一个 USN 开始读取
     let mut read_data = READ_USN_JOURNAL_DATA_V1 {
         StartUsn: journal_data.NextUsn, // 从最新开始
@@ -275,13 +272,13 @@ pub fn start_usn_watch(
         MinMajorVersion: 3,
         MaxMajorVersion: 3,
     };
-    
+
     let mut buffer = vec![0u8; 65536]; // 64KB 缓冲区
     let mut state = UsnJournalState::new();
-    
+
     while running.load(Ordering::SeqCst) {
         let mut bytes_returned: u32 = 0;
-        
+
         let result = unsafe {
             DeviceIoControl(
                 handle,
@@ -294,74 +291,66 @@ pub fn start_usn_watch(
                 None,
             )
         };
-        
+
         if result.is_ok() && bytes_returned > 0 {
             // 解析 USN 记录
             let mut offset = 0;
-            
+
             while offset + 8 <= bytes_returned as usize {
                 // 读取记录长度
-                let record_len = unsafe {
-                    *(buffer.as_ptr().add(offset) as *const u32)
-                } as usize;
-                
+                let record_len = unsafe { *(buffer.as_ptr().add(offset) as *const u32) } as usize;
+
                 if record_len == 0 || offset + record_len > bytes_returned as usize {
                     break;
                 }
-                
+
                 // 解析 USN_RECORD_V3
                 let record_ptr = unsafe { buffer.as_ptr().add(offset) as *const USN_RECORD_V3 };
                 let record = unsafe { &*record_ptr };
-                
+
                 // 处理事件
                 handle_usn_event(record, index, exclude_paths);
-                
+
                 // 更新状态
                 state.last_usn = record.Usn;
-                
+
                 offset += record_len;
             }
-            
+
             // 更新下一次读取的起始位置
             if offset > 0 {
                 read_data.StartUsn = state.last_usn;
             }
         }
-        
+
         // 短暂休眠，避免 CPU 占用过高
         std::thread::sleep(std::time::Duration::from_millis(100));
     }
-    
+
     unsafe {
         let _ = CloseHandle(handle);
     }
-    
+
     println!("USN 监控已停止");
     Ok(())
 }
 
 /// 处理 USN 事件
 #[cfg(target_os = "windows")]
-fn handle_usn_event(
-    record: &USN_RECORD_V3,
-    index: &mut TrieIndex,
-    exclude_paths: &[String],
-) {
+fn handle_usn_event(record: &USN_RECORD_V3, index: &mut TrieIndex, exclude_paths: &[String]) {
     use windows::Win32::Storage::FileSystem::{
-        USN_REASON_DATA_BASIC_INFO_CHANGE,
-        USN_REASON_FILE_CREATE,
-        USN_REASON_FILE_DELETE,
+        USN_REASON_DATA_BASIC_INFO_CHANGE, USN_REASON_FILE_CREATE, USN_REASON_FILE_DELETE,
         USN_REASON_RENAME_NEW_NAME,
     };
-    
+
     // 检查是否应该排除
     let file_name = wide_string_to_string(&record.FileName);
     let full_path = format!("C:{}", file_name);
-    
+
     if should_exclude(&full_path.to_lowercase(), exclude_paths) {
         return;
     }
-    
+
     // 处理不同的事件类型
     if record.Reason & USN_REASON_FILE_CREATE.0 != 0 {
         // 文件创建
@@ -383,13 +372,13 @@ fn handle_usn_event(
             index.add(new_record);
         }
     }
-    
+
     if record.Reason & USN_REASON_FILE_DELETE.0 != 0 {
         // 文件删除
         tracing::debug!("USN: 文件删除 - {}", file_name);
         index.remove(Path::new(&full_path));
     }
-    
+
     if record.Reason & (USN_REASON_DATA_BASIC_INFO_CHANGE.0 | USN_REASON_RENAME_NEW_NAME.0) != 0 {
         // 文件修改或重命名
         tracing::debug!("USN: 文件修改/重命名 - {}", file_name);
@@ -403,7 +392,7 @@ fn wide_string_to_string(wide: &[u16]) -> String {
     if wide.is_empty() {
         return String::new();
     }
-    
+
     // 去除结尾的 null
     let len = wide.iter().position(|&c| c == 0).unwrap_or(wide.len());
     String::from_utf16_lossy(&wide[..len])
@@ -425,18 +414,15 @@ pub fn get_windows_system_excludes() -> Vec<String> {
         // 系统目录
         "C:/Windows".to_string(),
         "C:/Windows/WinSxS".to_string(),
-        
         // 程序文件（可选排除）
         // "C:/Program Files".to_string(),
         // "C:/Program Files (x86)".to_string(),
-        
+
         // 页面文件和休眠文件
         "C:/pagefile.sys".to_string(),
         "C:/hiberfil.sys".to_string(),
-        
         // 系统卷信息
         "C:/System Volume Information".to_string(),
-        
         // 回收站
         "C:/$Recycle.Bin".to_string(),
     ]
@@ -445,16 +431,16 @@ pub fn get_windows_system_excludes() -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_should_exclude_windows_paths() {
         let exclude_paths: Vec<String> = vec![];
-        
+
         assert!(should_exclude("C:/Windows/System32", &exclude_paths));
         assert!(should_exclude("C:/Program Files/App", &exclude_paths));
         assert!(!should_exclude("C:/Users/Test", &exclude_paths));
     }
-    
+
     #[test]
     fn test_usn_journal_state() {
         let state = UsnJournalState::new();

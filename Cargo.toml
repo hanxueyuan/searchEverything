@@ -1,6 +1,6 @@
 [package]
 name = "searchEverything"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "A cross-platform file search CLI tool with OpenClaw integration"
 license = "MIT"
@@ -65,7 +65,3 @@ ctrlc = "3.4"
 assert_cmd = "2.0"
 predicates = "3.0"
 tempfile = "3.0"
-
-[[bin]]
-name = "se"
-path = "src/main.rs"

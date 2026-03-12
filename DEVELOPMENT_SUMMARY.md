@@ -7,7 +7,7 @@
 **实现内容:**
 - 使用 `notify` crate (v6.1) 实现 inotify 实时监控
 - 支持文件创建、修改、删除事件自动更新索引
-- 添加 `se index watch` 命令
+- 添加 `searchEverything index watch` 命令
 - 支持 Ctrl+C 优雅退出
 - 自动定期保存索引
 
@@ -191,18 +191,18 @@ sudo ./scripts/setup-autostart.sh
 ### 基本使用
 ```bash
 # 查看索引状态
-se index status
+searchEverything index status
 
 # 重建索引
-se index rebuild
+searchEverything index rebuild
 
 # 启动实时监控
-se index watch /home
+searchEverything index watch /home
 
 # 搜索文件
-se search "*.rs"
-se search --regex ".*\.rs$"
-se search --fuzzy "cargo"
+searchEverything search "*.rs"
+searchEverything search --regex ".*\.rs$"
+searchEverything search --fuzzy "cargo"
 ```
 
 ### systemd 服务

@@ -6,15 +6,15 @@
 
 - 使用 `notify` crate 实现 inotify 实时监控
 - 支持文件创建、修改、删除事件自动更新索引
-- 添加 `se index watch` 命令启动监控服务
+- 添加 `searchEverything index watch` 命令启动监控服务
 
 **使用方法:**
 ```bash
 # 启动实时监控
-se index watch /home
+searchEverything index watch /home
 
 # 监控多个路径
-se index watch /home /opt
+searchEverything index watch /home /opt
 ```
 
 ### 2. Trie 索引引擎 ✅
@@ -37,10 +37,10 @@ se index watch /home /opt
 **使用方法:**
 ```bash
 # 索引自动保存到 ~/.config/searchEverything/index.bin
-se index rebuild
+searchEverything index rebuild
 
 # 下次启动自动加载
-se search "*.rs"
+searchEverything search "*.rs"
 ```
 
 ### 4. Linux 系统优化 ✅
@@ -140,27 +140,27 @@ performance:
 
 ### 索引管理
 ```bash
-se index status          # 查看索引状态
-se index rebuild         # 重建索引
-se index watch /home     # 启动实时监控
-se index add -p /path    # 添加索引路径
-se index remove -p /path # 移除索引路径
-se index list            # 列出索引路径
+searchEverything index status          # 查看索引状态
+searchEverything index rebuild         # 重建索引
+searchEverything index watch /home     # 启动实时监控
+searchEverything index add -p /path    # 添加索引路径
+searchEverything index remove -p /path # 移除索引路径
+searchEverything index list            # 列出索引路径
 ```
 
 ### 排除管理
 ```bash
-se index exclude add -p /path     # 添加排除
-se index exclude remove -p /path  # 移除排除
-se index exclude list             # 列出排除
+searchEverything index exclude add -p /path     # 添加排除
+searchEverything index exclude remove -p /path  # 移除排除
+searchEverything index exclude list             # 列出排除
 ```
 
 ### 搜索
 ```bash
-se search "*.rs"              # 通配符搜索
-se search --regex ".*\.rs$"   # 正则搜索
-se search --fuzzy "cargo"     # 模糊搜索
-se search "*.rs" -l 50        # 限制结果数
+searchEverything search "*.rs"              # 通配符搜索
+searchEverything search --regex ".*\.rs$"   # 正则搜索
+searchEverything search --fuzzy "cargo"     # 模糊搜索
+searchEverything search "*.rs" -l 50        # 限制结果数
 ```
 
 ## 性能基准

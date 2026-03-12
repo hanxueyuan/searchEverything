@@ -55,7 +55,7 @@ setup_systemd() {
 setup_cron() {
     echo "配置 cron 定时索引更新..."
     
-    CRON_JOB="0 * * * * /usr/local/bin/se index rebuild > /dev/null 2>&1"
+    CRON_JOB="0 * * * * /usr/local/bin/searchEverything index rebuild > /dev/null 2>&1"
     
     # 检查是否已存在
     if crontab -l 2>/dev/null | grep -q "searchEverything"; then

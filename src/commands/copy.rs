@@ -1,11 +1,11 @@
 use anyhow::Result;
-use std::path::Path;
 use glob::glob;
+use std::path::Path;
 
 pub fn execute(source: &str, dest: &Path) -> Result<()> {
     // 处理通配符
     let paths: Vec<_> = glob(source)?.filter_map(|p| p.ok()).collect();
-    
+
     if paths.is_empty() {
         // 单个文件
         std::fs::copy(source, dest)?;
@@ -19,6 +19,6 @@ pub fn execute(source: &str, dest: &Path) -> Result<()> {
             println!("已复制：{} -> {}", src_path.display(), dest_path.display());
         }
     }
-    
+
     Ok(())
 }

@@ -87,7 +87,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/se index watch /home
+ExecStart=/usr/local/bin/searchEverything index watch /home
 Restart=on-failure
 
 [Install]
@@ -134,7 +134,7 @@ WantedBy=multi-user.target
 
 ```bash
 # 手动启动
-se index watch /home
+searchEverything index watch /home
 
 # systemd 启动
 sudo systemctl enable searcheverything
@@ -145,13 +145,13 @@ sudo systemctl start searcheverything
 
 ```bash
 # 通配符搜索
-se search "*.rs"
+searchEverything search "*.rs"
 
 # 正则搜索
-se search --regex ".*\.rs$"
+searchEverything search --regex ".*\.rs$"
 
 # 模糊搜索
-se search --fuzzy "cargo"
+searchEverything search --fuzzy "cargo"
 ```
 
 ## 配置文件

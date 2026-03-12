@@ -48,11 +48,8 @@ install_binary() {
     
     mkdir -p "$BIN_DIR"
     cp "$PROJECT_DIR/target/release/searchEverything" "$BIN_DIR/"
-    cp "$PROJECT_DIR/target/release/se" "$BIN_DIR/" 2>/dev/null || \
-        ln -sf "$BIN_DIR/searchEverything" "$BIN_DIR/se"
     
     chmod +x "$BIN_DIR/searchEverything"
-    chmod +x "$BIN_DIR/se"
     
     echo "✓ 二进制文件安装完成"
 }
@@ -80,7 +77,7 @@ install_completion() {
     mkdir -p "$bash_completion_dir"
     
     cat > "$bash_completion_dir/searcheverything" << 'EOF'
-_se_completion() {
+_searchEverything_completion() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local commands="search info cat copy move delete index config help"
     
@@ -90,8 +87,7 @@ _se_completion() {
         COMPREPLY=($(compgen -f -- "$cur"))
     fi
 }
-complete -F _se_completion se
-complete -F _se_completion searchEverything
+complete -F _searchEverything_completion searchEverything
 EOF
     
     echo "✓ Bash 补全安装完成"
@@ -105,10 +101,10 @@ show_usage() {
     echo "======================================"
     echo
     echo "使用方法:"
-    echo "  se search \"*.rs\"          # 搜索文件"
-    echo "  se index status             # 查看索引状态"
-    echo "  se index rebuild            # 重建索引"
-    echo "  se index watch /home        # 启动实时监控"
+    echo "  searchEverything search \"*.rs\"          # 搜索文件"
+    echo "  searchEverything index status             # 查看索引状态"
+    echo "  searchEverything index rebuild            # 重建索引"
+    echo "  searchEverything index watch /home        # 启动实时监控"
     echo
     echo "systemd 服务管理:"
     echo "  sudo systemctl enable searcheverything"

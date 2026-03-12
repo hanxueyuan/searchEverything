@@ -1,5 +1,5 @@
-use serde::Serialize;
 use clap::ValueEnum;
+use serde::Serialize;
 use std::io::{self, Write};
 
 /// 搜索结果
@@ -19,7 +19,7 @@ pub enum OutputFormat {
 }
 
 /// 流式输出器
-/// 
+///
 /// 支持边匹配边输出，减少用户等待时间
 pub struct StreamOutput {
     /// 输出格式
@@ -45,12 +45,12 @@ impl StreamOutput {
             current_page_count: 0,
         }
     }
-    
+
     /// 输出单个结果
     pub fn write(&mut self, result: &SearchResult) -> io::Result<()> {
         let stdout = io::stdout();
         let mut handle = stdout.lock();
-        
+
         match &self.format {
             OutputFormat::Text => {
                 writeln!(handle, "{}", result.path)?;
@@ -61,12 +61,12 @@ impl StreamOutput {
                 writeln!(handle, "{}", json_line)?;
             }
         }
-        
+
         handle.flush()?;
-        
+
         self.count += 1;
         self.current_page_count += 1;
-        
+
         // 检查是否需要分页暂停
         if let Some(page_size) = self.page_size {
             if self.current_page_count >= page_size {
@@ -74,41 +74,45 @@ impl StreamOutput {
                 // 提示用户继续
                 eprint!("-- 按 Enter 继续，Ctrl+C 退出 --");
                 let _ = io::stderr().flush();
-                
+
                 let mut input = String::new();
                 io::stdin().read_line(&mut input)?;
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// 输出进度信息
     pub fn write_progress(&self, scanned: usize, found: usize) -> io::Result<()> {
         let stderr = io::stderr();
         let mut handle = stderr.lock();
-        
-        write!(handle, "\r已搜索：{} 个文件，找到：{} 个结果", scanned, found)?;
+
+        write!(
+            handle,
+            "\r已搜索：{} 个文件，找到：{} 个结果",
+            scanned, found
+        )?;
         handle.flush()?;
-        
+
         Ok(())
     }
-    
+
     /// 完成输出
     pub fn finish(&self) -> io::Result<()> {
         let stderr = io::stderr();
         let mut handle = stderr.lock();
-        
+
         // 清除进度行
         write!(handle, "\r")?;
-        
+
         // 显示总计
         eprintln!("搜索完成：共找到 {} 个结果", self.count);
         handle.flush()?;
-        
+
         Ok(())
     }
-    
+
     /// 获取已输出结果数
     pub fn count(&self) -> usize {
         self.count
@@ -122,11 +126,11 @@ impl SearchResult {
             OutputFormat::Json => serde_json::to_string(self).unwrap_or_default(),
         }
     }
-    
+
     /// 从文件元数据创建 SearchResult
     pub fn from_path(path: &std::path::Path, metadata: &std::fs::Metadata) -> Self {
         use std::time::UNIX_EPOCH;
-        
+
         Self {
             path: path.to_string_lossy().to_string(),
             size: metadata.len(),

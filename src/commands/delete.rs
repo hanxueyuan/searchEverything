@@ -3,7 +3,7 @@ use glob::glob;
 
 pub fn execute(path: &str, force: bool) -> Result<()> {
     let paths: Vec<_> = glob(path)?.filter_map(|p| p.ok()).collect();
-    
+
     if paths.is_empty() {
         // 单个文件
         if force {
@@ -35,6 +35,6 @@ pub fn execute(path: &str, force: bool) -> Result<()> {
             }
         }
     }
-    
+
     Ok(())
 }

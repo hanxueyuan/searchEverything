@@ -79,7 +79,7 @@
 
 ### 1. 索引构建
 ```bash
-$ se index rebuild -p .
+$ searchEverything index rebuild -p .
 正在使用 Linux inotify 构建索引...
 索引构建完成：260 文件，14 目录，耗时 0.02s
 ```
@@ -87,14 +87,14 @@ $ se index rebuild -p .
 
 ### 2. 文件搜索
 ```bash
-$ se search "*.rs" -l 5
+$ searchEverything search "*.rs" -l 5
 {"total":5,"results":[...]}
 ```
 **结果:** ✅ 通过
 
 ### 3. 索引状态
 ```bash
-$ se index status
+$ searchEverything index status
 索引状态
 ═══════════════════════════════════════
 已初始化：是
@@ -109,7 +109,7 @@ $ se index status
 
 ### 4. 帮助命令
 ```bash
-$ se --help
+$ searchEverything --help
 searchEverything - 本地文件搜索工具
 
 Commands:

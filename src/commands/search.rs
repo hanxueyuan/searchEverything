@@ -1,13 +1,13 @@
 use crate::error::SearchError;
 use crate::output::{OutputFormat, SearchResult, StreamOutput};
 use anyhow::Result;
-use std::path::Path;
-use walkdir::WalkDir;
 use regex::Regex;
 use std::io::{self, Write};
+use std::path::Path;
+use walkdir::WalkDir;
 
 /// 搜索执行函数
-/// 
+///
 /// 支持三种搜索模式：
 /// - 通配符（默认）：*.pdf, report*.docx
 /// - 正则表达式：--regex ".*\.rs$"
@@ -33,22 +33,19 @@ pub fn execute(
     } else {
         None
     };
-    
+
     // 创建流式输出器
     let mut stream_output = StreamOutput::new(format.clone(), page_size);
-    
+
     let mut results = Vec::new();
     let mut scanned = 0;
-    
-    for entry in WalkDir::new(path)
-        .into_iter()
-        .filter_map(|e| e.ok())
-    {
+
+    for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
         scanned += 1;
-        
+
         let file_name = entry.file_name().to_string_lossy();
         let mut matched = false;
-        
+
         // 根据模式匹配
         if use_regex {
             // 正则模式
@@ -62,11 +59,11 @@ pub fn execute(
             // 通配符模式（默认）
             matched = matches_pattern(&pattern.to_lowercase(), &file_name.to_lowercase());
         }
-        
+
         if matched {
             let metadata = entry.metadata()?;
             let result = SearchResult::from_path(entry.path(), &metadata);
-            
+
             if stream {
                 // 流式输出：立即输出结果
                 stream_output.write(&result)?;
@@ -74,7 +71,7 @@ pub fn execute(
                 // 批量输出：先收集结果
                 results.push(result);
             }
-            
+
             // 检查是否达到限制
             if stream {
                 if stream_output.count() >= limit {
@@ -86,13 +83,13 @@ pub fn execute(
                 }
             }
         }
-        
+
         // 定期输出进度（每 1000 个文件）
         if stream && scanned % 1000 == 0 {
             stream_output.write_progress(scanned, stream_output.count())?;
         }
     }
-    
+
     // 如果不是流式输出，现在输出所有结果
     if !stream {
         // 模糊搜索时按相关度排序
@@ -101,19 +98,27 @@ pub fn execute(
                 let a_name = a.path.to_lowercase();
                 let b_name = b.path.to_lowercase();
                 let pattern_lower = pattern.to_lowercase();
-                
+
                 // 包含匹配度排序
-                let a_score = if a_name.starts_with(&pattern_lower) { 2 } 
-                             else if a_name.contains(&pattern_lower) { 1 } 
-                             else { 0 };
-                let b_score = if b_name.starts_with(&pattern_lower) { 2 } 
-                             else if b_name.contains(&pattern_lower) { 1 } 
-                             else { 0 };
-                
+                let a_score = if a_name.starts_with(&pattern_lower) {
+                    2
+                } else if a_name.contains(&pattern_lower) {
+                    1
+                } else {
+                    0
+                };
+                let b_score = if b_name.starts_with(&pattern_lower) {
+                    2
+                } else if b_name.contains(&pattern_lower) {
+                    1
+                } else {
+                    0
+                };
+
                 b_score.cmp(&a_score)
             });
         }
-        
+
         // 输出结果
         match format {
             OutputFormat::Text => {
@@ -131,13 +136,17 @@ pub fn execute(
                 println!("{}", output);
             }
         }
-        
-        eprintln!("搜索完成：共找到 {} 个结果（扫描了 {} 个文件）", results.len(), scanned);
+
+        eprintln!(
+            "搜索完成：共找到 {} 个结果（扫描了 {} 个文件）",
+            results.len(),
+            scanned
+        );
     } else {
         // 流式输出完成
         stream_output.finish()?;
     }
-    
+
     Ok(())
 }
 
@@ -146,32 +155,32 @@ fn matches_pattern(pattern: &str, text: &str) -> bool {
     if pattern == "*" {
         return true;
     }
-    
+
     if pattern.starts_with('*') && pattern.ends_with('*') {
         let inner = &pattern[1..pattern.len() - 1];
         return text.contains(inner);
     }
-    
+
     if pattern.starts_with('*') {
         return text.ends_with(&pattern[1..]);
     }
-    
+
     if pattern.ends_with('*') {
         return text.starts_with(&pattern[..pattern.len() - 1]);
     }
-    
+
     // 支持？通配符
     if pattern.contains('?') {
         return glob_match(pattern, text);
     }
-    
+
     pattern == text
 }
 
 fn glob_match(pattern: &str, text: &str) -> bool {
     let mut pattern_chars = pattern.chars();
     let mut text_chars = text.chars();
-    
+
     while let Some(p_char) = pattern_chars.next() {
         match p_char {
             '?' => {
@@ -190,6 +199,6 @@ fn glob_match(pattern: &str, text: &str) -> bool {
             }
         }
     }
-    
+
     text_chars.next().is_none()
 }
