@@ -18,21 +18,12 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 #[cfg(target_os = "windows")]
-use windows::{
-    Win32::Foundation::{CloseHandle, HANDLE, INVALID_HANDLE_VALUE},
-    Win32::Storage::FileSystem::{
-        CreateFileW, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_SHARE_WRITE,
-        OPEN_EXISTING,
-    },
-    Win32::System::IO::{
-        DeviceIoControl, FSCTL_QUERY_USN_JOURNAL, FSCTL_READ_USN_JOURNAL,
-    },
-    Win32::System::WindowsProgramming::{
-        GENERIC_READ, GENERIC_WRITE,
-    },
-    Win32::Storage::FileSystem::{
-        READ_USN_JOURNAL_DATA_V1, USN_JOURNAL_DATA_V0, USN_RECORD_V3,
-    },
+use windows::Win32::Foundation::{CloseHandle, HANDLE, INVALID_HANDLE_VALUE};
+#[cfg(target_os = "windows")]
+use windows::Win32::Storage::FileSystem::{
+    CreateFileW, DeviceIoControl, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_SHARE_WRITE,
+    FSCTL_QUERY_USN_JOURNAL, FSCTL_READ_USN_JOURNAL, GENERIC_READ, GENERIC_WRITE, OPEN_EXISTING,
+    READ_USN_JOURNAL_DATA_V1, USN_JOURNAL_DATA_V0, USN_RECORD_V3,
 };
 
 /// Windows MFT 索引构建器
@@ -348,7 +339,7 @@ pub fn start_usn_watch(
 /// 处理 USN 事件
 #[cfg(target_os = "windows")]
 fn handle_usn_event(record: &USN_RECORD_V3, index: &mut TrieIndex, exclude_paths: &[String]) {
-    use windows::Win32::System::IO::{
+    use windows::Win32::Storage::FileSystem::{
         USN_REASON_DATA_BASIC_INFO_CHANGE, USN_REASON_FILE_CREATE, USN_REASON_FILE_DELETE,
         USN_REASON_RENAME_NEW_NAME,
     };
