@@ -17,17 +17,17 @@ pub fn execute(file: &Path, json: bool) -> Result<()> {
     if json {
         println!("{}", info);
     } else {
-        println!("路径：{}", file.to_string_lossy());
-        println!("大小：{} 字节", metadata.len());
+        println!("Path: {}", file.to_string_lossy());
+        println!("Size: {} bytes", metadata.len());
         println!(
-            "类型：{}",
+            "Type: {}",
             if metadata.is_dir() {
-                "目录"
+                "Directory"
             } else {
-                "文件"
+                "File"
             }
         );
-        println!("修改时间：{:?}", metadata.modified()?);
+        println!("Modified: {:?}", metadata.modified()?);
     }
 
     Ok(())

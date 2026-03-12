@@ -89,14 +89,14 @@ impl StreamOutput {
         Ok(())
     }
 
-    /// 输出进度信息
+    /// Output progress information
     pub fn write_progress(&self, scanned: usize, found: usize) -> io::Result<()> {
         let stderr = io::stderr();
         let mut handle = stderr.lock();
 
         write!(
             handle,
-            "\r已搜索：{} 个文件，找到：{} 个结果",
+            "\rScanned: {} files, Found: {} results",
             scanned, found
         )?;
         handle.flush()?;
@@ -104,16 +104,16 @@ impl StreamOutput {
         Ok(())
     }
 
-    /// 完成输出
+    /// Finish output
     pub fn finish(&self) -> io::Result<()> {
         let stderr = io::stderr();
         let mut handle = stderr.lock();
 
-        // 清除进度行
+        // Clear progress line
         write!(handle, "\r")?;
 
-        // 显示总计
-        eprintln!("搜索完成：共找到 {} 个结果", self.count);
+        // Display total
+        eprintln!("Search complete: found {} results", self.count);
         handle.flush()?;
 
         Ok(())
@@ -141,7 +141,7 @@ pub fn format_size(bytes: u64) -> String {
     }
 }
 
-/// 格式化时间为人类可读格式
+/// Format time to human-readable format
 fn format_time_human(secs_since_epoch: u64) -> String {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -155,14 +155,14 @@ fn format_time_human(secs_since_epoch: u64) -> String {
     };
 
     match diff {
-        0..=5 => "刚刚".to_string(),
-        6..=59 => format!("{} 秒前", diff),
-        60..=3599 => format!("{} 分钟前", diff / 60),
-        3600..=86399 => format!("{} 小时前", diff / 3600),
-        86400..=604799 => format!("{} 天前", diff / 86400),
-        604800..=2591999 => format!("{} 周前", diff / 604800),
-        2592000..=31535999 => format!("{} 个月前", diff / 2592000),
-        _ => format!("{} 年前", diff / 31536000),
+        0..=5 => "just now".to_string(),
+        6..=59 => format!("{} seconds ago", diff),
+        60..=3599 => format!("{} minutes ago", diff / 60),
+        3600..=86399 => format!("{} hours ago", diff / 3600),
+        86400..=604799 => format!("{} days ago", diff / 86400),
+        604800..=2591999 => format!("{} weeks ago", diff / 604800),
+        2592000..=31535999 => format!("{} months ago", diff / 2592000),
+        _ => format!("{} years ago", diff / 31536000),
     }
 }
 

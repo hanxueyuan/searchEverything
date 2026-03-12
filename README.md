@@ -1,5 +1,9 @@
 # searchEverything
 
+[中文](README.md) | [English](README_en.md)
+
+---
+
 跨平台文件搜索 CLI 工具，支持 OpenClaw 集成。
 
 ## 特性

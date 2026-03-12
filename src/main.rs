@@ -19,135 +19,135 @@ pub use output::OutputFormat;
 
 #[derive(Parser)]
 #[command(name = "searchEverything")]
-#[command(about = "searchEverything - 本地文件搜索工具", long_about = None)]
+#[command(about = "searchEverything - Local file search tool", long_about = None)]
 #[command(version = env!("CARGO_PKG_VERSION"))]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
 
-    /// 启用详细日志
+    /// Enable verbose logging
     #[arg(short, long, global = true)]
     verbose: bool,
 }
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// 搜索文件
+    /// Search for files
     Search {
-        /// 搜索模式（支持通配符 * 和 ?）
+        /// Search pattern (supports wildcards * and ?)
         pattern: String,
 
-        /// 搜索路径
+        /// Search path
         #[arg(short, long, default_value = ".")]
         path: PathBuf,
 
-        /// 最大结果数
+        /// Maximum number of results
         #[arg(short, long, default_value = "100")]
         limit: usize,
 
-        /// 输出格式
+        /// Output format
         #[arg(short, long, value_enum, default_value = "json")]
         format: output::OutputFormat,
 
-        /// 文件类型过滤
+        /// File type filter
         #[arg(short, long, value_enum, default_value = "both")]
         type_: FileType,
 
-        /// 使用正则表达式
+        /// Use regular expression
         #[arg(long)]
         regex: bool,
 
-        /// 使用模糊搜索
+        /// Use fuzzy search
         #[arg(long)]
         fuzzy: bool,
 
-        /// 流式输出（实时显示结果）
+        /// Streaming output (display results in real-time)
         #[arg(long)]
         stream: bool,
 
-        /// 分页大小（流式模式下每页显示的结果数）
+        /// Page size (number of results per page in streaming mode)
         #[arg(long)]
         page_size: Option<usize>,
     },
 
-    /// 查看文件信息
+    /// View file information
     Info {
-        /// 文件路径
+        /// File path
         file: PathBuf,
 
-        /// JSON 输出
+        /// JSON output
         #[arg(short, long)]
         json: bool,
     },
 
-    /// 读取文件内容
+    /// Read file content
     Cat {
-        /// 文件路径
+        /// File path
         file: PathBuf,
 
-        /// 显示行数
+        /// Display number of lines
         #[arg(short, long)]
         lines: Option<usize>,
 
-        /// 显示末尾 N 行（类似 tail）
+        /// Display last N lines (similar to tail)
         #[arg(long)]
         tail: bool,
     },
 
-    /// 复制文件
+    /// Copy files
     Copy {
-        /// 源文件路径（支持通配符）
+        /// Source file path (supports wildcards)
         source: String,
 
-        /// 目标路径
+        /// Destination path
         dest: PathBuf,
     },
 
-    /// 移动文件
+    /// Move files
     Move {
-        /// 源文件路径
+        /// Source file path
         source: String,
 
-        /// 目标路径
+        /// Destination path
         dest: PathBuf,
     },
 
-    /// 删除文件
+    /// Delete files
     Delete {
-        /// 文件路径（支持通配符）
+        /// File path (supports wildcards)
         path: String,
 
-        /// 强制删除，不确认
+        /// Force delete without confirmation
         #[arg(short, long)]
         force: bool,
     },
 
-    /// 索引管理
+    /// Index management
     Index {
         #[command(subcommand)]
         action: IndexAction,
     },
 
-    /// 快速索引状态
+    /// Quick index status
     IndexStatus,
 
-    /// 审计日志管理
+    /// Audit log management
     Audit {
         #[command(subcommand)]
         action: AuditAction,
     },
 
-    /// 配置管理
+    /// Configuration management
     Config {
         #[command(subcommand)]
         action: ConfigAction,
     },
 
-    /// Skill 测试
+    /// Skill test
     #[command(hide = true)]
     SkillTest,
 
-    /// 显示上下文信息
+    /// Display context information
     #[command(hide = true)]
     Context,
 
@@ -156,72 +156,72 @@ enum Commands {
 
 #[derive(Subcommand, Debug)]
 enum ConfigAction {
-    /// 显示当前配置
+    /// Show current configuration
     Show,
 
-    /// 编辑配置文件
+    /// Edit configuration file
     Edit,
 
-    /// 重置为默认配置
+    /// Reset to default configuration
     Reset,
 
-    /// 验证配置文件
+    /// Validate configuration file
     Validate,
 }
 
 #[derive(Subcommand, Debug)]
 enum AuditAction {
-    /// 列出最近的日志
+    /// List recent logs
     List {
-        /// 最大显示数量
+        /// Maximum number to display
         #[arg(short, long, default_value = "20")]
         limit: usize,
 
-        /// 命令过滤
+        /// Command filter
         #[arg(long)]
         command: Option<String>,
     },
 
-    /// 搜索日志
+    /// Search logs
     Search {
-        /// 命令过滤
+        /// Command filter
         #[arg(long)]
         command: Option<String>,
 
-        /// 开始时间 (RFC3339 格式)
+        /// Start time (RFC3339 format)
         #[arg(long)]
         after: Option<String>,
 
-        /// 结束时间 (RFC3339 格式)
+        /// End time (RFC3339 format)
         #[arg(long)]
         before: Option<String>,
 
-        /// 结果过滤 (success/error)
+        /// Result filter (success/error)
         #[arg(long)]
         result: Option<String>,
 
-        /// 最大显示数量
+        /// Maximum number to display
         #[arg(short, long, default_value = "100")]
         limit: usize,
     },
 
-    /// 导出日志
+    /// Export logs
     Export {
-        /// 导出格式 (json/csv)
+        /// Export format (json/csv)
         #[arg(short, long, default_value = "json")]
         format: String,
 
-        /// 输出文件路径
+        /// Output file path
         #[arg(short, long)]
         output: PathBuf,
     },
 
-    /// 显示统计信息
+    /// Display statistics
     Stats,
 
-    /// 清理旧日志
+    /// Clean old logs
     Cleanup {
-        /// 保留天数
+        /// Retention days
         #[arg(long, default_value = "30")]
         days: u32,
     },
@@ -236,37 +236,37 @@ enum FileType {
 
 #[derive(Subcommand, Debug)]
 enum IndexAction {
-    /// 显示索引状态
+    /// Display index status
     Status,
 
-    /// 重建索引
+    /// Rebuild index
     Rebuild {
         #[arg(short, long, default_value = ".")]
         path: PathBuf,
     },
 
-    /// 启动实时监控
+    /// Start real-time monitoring
     Watch {
         #[arg(short, long, default_value = ".")]
         path: PathBuf,
     },
 
-    /// 添加索引路径
+    /// Add index path
     Add {
         #[arg(short, long)]
         path: PathBuf,
     },
 
-    /// 移除索引路径
+    /// Remove index path
     Remove {
         #[arg(short, long)]
         path: PathBuf,
     },
 
-    /// 列出索引路径
+    /// List index paths
     List,
 
-    /// 排除路径管理
+    /// Exclude path management
     Exclude {
         #[command(subcommand)]
         action: ExcludeAction,
@@ -275,17 +275,17 @@ enum IndexAction {
 
 #[derive(Subcommand, Debug)]
 enum ExcludeAction {
-    /// 添加排除路径
+    /// Add exclude path
     Add {
         #[arg(short, long)]
         path: PathBuf,
     },
-    /// 移除排除路径
+    /// Remove exclude path
     Remove {
         #[arg(short, long)]
         path: PathBuf,
     },
-    /// 列出排除路径
+    /// List exclude paths
     List,
 }
 
@@ -392,7 +392,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/// 打印 JSON 格式帮助
+/// Print JSON format help
 fn print_help_json(command: &str) -> Result<()> {
     use serde_json::json;
 
@@ -400,25 +400,25 @@ fn print_help_json(command: &str) -> Result<()> {
         json!({
             "name": "searchEverything",
             "version": env!("CARGO_PKG_VERSION"),
-            "description": "跨平台文件搜索 CLI 工具",
+            "description": "Cross-platform file search CLI tool",
             "commands": [
-                {"name": "search", "description": "搜索文件", "aliases": ["s"]},
-                {"name": "info", "description": "查看文件信息"},
-                {"name": "cat", "description": "读取文件内容"},
-                {"name": "copy", "description": "复制文件"},
-                {"name": "move", "description": "移动文件"},
-                {"name": "delete", "description": "删除文件"},
-                {"name": "index", "description": "索引管理"},
-                {"name": "config", "description": "配置管理"},
-                {"name": "context", "description": "显示上下文信息"},
-                {"name": "help", "description": "显示帮助"},
+                {"name": "search", "description": "Search for files", "aliases": ["s"]},
+                {"name": "info", "description": "View file information"},
+                {"name": "cat", "description": "Read file content"},
+                {"name": "copy", "description": "Copy files"},
+                {"name": "move", "description": "Move files"},
+                {"name": "delete", "description": "Delete files"},
+                {"name": "index", "description": "Index management"},
+                {"name": "config", "description": "Configuration management"},
+                {"name": "context", "description": "Display context information"},
+                {"name": "help", "description": "Display help"},
             ]
         })
     } else {
-        // TODO: 返回具体命令的详细帮助
+        // TODO: Return detailed help for specific command
         json!({
             "command": command,
-            "description": "命令详细信息",
+            "description": "Command details",
             "usage": format!("searchEverything {} [OPTIONS]", command),
             "options": []
         })
@@ -428,52 +428,52 @@ fn print_help_json(command: &str) -> Result<()> {
     Ok(())
 }
 
-/// 打印文本格式帮助
+/// Print text format help
 fn print_help_text(command: &str) -> Result<()> {
     if command.is_empty() {
         println!("searchEverything v{}", env!("CARGO_PKG_VERSION"));
-        println!("跨平台文件搜索 CLI 工具\n");
-        println!("用法：searchEverything <COMMAND>\n");
-        println!("命令:");
-        println!("  search    搜索文件");
-        println!("  info      查看文件信息");
-        println!("  cat       读取文件内容");
-        println!("  copy      复制文件");
-        println!("  move      移动文件");
-        println!("  delete    删除文件");
-        println!("  index     索引管理");
-        println!("  config    配置管理");
-        println!("  context   显示上下文信息");
-        println!("  help      显示帮助");
-        println!("\n使用 'searchEverything help <command>' 查看具体命令帮助");
+        println!("Cross-platform file search CLI tool\n");
+        println!("Usage: searchEverything <COMMAND>\n");
+        println!("Commands:");
+        println!("  search    Search for files");
+        println!("  info      View file information");
+        println!("  cat       Read file content");
+        println!("  copy      Copy files");
+        println!("  move      Move files");
+        println!("  delete    Delete files");
+        println!("  index     Index management");
+        println!("  config    Configuration management");
+        println!("  context   Display context information");
+        println!("  help      Display help");
+        println!("\nUse 'searchEverything help <command>' for detailed command help");
     } else {
-        println!("命令：{}", command);
-        println!("使用 'searchEverything {} --help' 查看详细选项", command);
+        println!("Command: {}", command);
+        println!("Use 'searchEverything {} --help' for detailed options", command);
     }
 
     Ok(())
 }
 
-/// 处理配置命令
+/// Handle configuration command
 fn handle_config(action: crate::ConfigAction) -> Result<()> {
     match action {
         crate::ConfigAction::Show => {
             let config_mgr = ConfigManager::load()?;
             let config = config_mgr.get();
 
-            println!("配置文件路径：{}", config_mgr.get_config_path().display());
+            println!("Configuration file path: {}", config_mgr.get_config_path().display());
             println!();
-            println!("当前配置:");
-            println!("  搜索模式：{}", config.search.default_mode);
-            println!("  默认结果数：{}", config.search.default_limit);
-            println!("  输出格式：{}", config.output.default_format);
-            println!("  自动索引：{}", config.index.auto_index);
-            println!("  删除确认：{}", config.file_operations.delete_confirm);
-            println!("  调试模式：{}", config.advanced.debug);
+            println!("Current configuration:");
+            println!("  Search mode: {}", config.search.default_mode);
+            println!("  Default result limit: {}", config.search.default_limit);
+            println!("  Output format: {}", config.output.default_format);
+            println!("  Auto index: {}", config.index.auto_index);
+            println!("  Delete confirmation: {}", config.file_operations.delete_confirm);
+            println!("  Debug mode: {}", config.advanced.debug);
 
             if !config.aliases.is_empty() {
                 println!();
-                println!("已定义别名:");
+                println!("Defined aliases:");
                 for (name, pattern) in &config.aliases {
                     println!("  {}: {}", name, pattern);
                 }
@@ -484,15 +484,15 @@ fn handle_config(action: crate::ConfigAction) -> Result<()> {
             let config_mgr = ConfigManager::load()?;
             let config_path = config_mgr.get_config_path();
 
-            println!("配置文件：{}", config_path.display());
-            println!("请使用编辑器打开此文件进行编辑");
-            println!("例如：nano {}", config_path.display());
+            println!("Configuration file: {}", config_path.display());
+            println!("Please open this file in your editor");
+            println!("For example: nano {}", config_path.display());
         }
 
         crate::ConfigAction::Reset => {
             let config_mgr = ConfigManager::load()?;
 
-            // 创建默认配置
+            // Create default configuration
             let default_config = config::Config::default();
             let new_mgr = ConfigManager {
                 config: default_config,
@@ -500,17 +500,17 @@ fn handle_config(action: crate::ConfigAction) -> Result<()> {
             };
             new_mgr.save()?;
 
-            println!("配置已重置为默认值");
-            println!("配置文件：{}", new_mgr.get_config_path().display());
+            println!("Configuration has been reset to defaults");
+            println!("Configuration file: {}", new_mgr.get_config_path().display());
         }
 
         crate::ConfigAction::Validate => match ConfigManager::load() {
             Ok(config_mgr) => {
-                println!("配置文件有效");
-                println!("路径：{}", config_mgr.get_config_path().display());
+                println!("Configuration file is valid");
+                println!("Path: {}", config_mgr.get_config_path().display());
             }
             Err(e) => {
-                eprintln!("配置文件无效：{}", e);
+                eprintln!("Configuration file is invalid: {}", e);
                 std::process::exit(1);
             }
         },

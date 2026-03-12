@@ -9,11 +9,11 @@ pub fn execute(file: &Path, lines: Option<usize>, tail: bool) -> Result<()> {
         let lines_vec: Vec<&str> = content.lines().collect();
 
         if tail {
-            // 显示末尾 N 行
+            // Display last N lines
             let start = lines_vec.len().saturating_sub(num_lines);
             lines_vec[start..].join("\n")
         } else {
-            // 显示前 N 行
+            // Display first N lines
             lines_vec[..num_lines.min(lines_vec.len())].join("\n")
         }
     } else {

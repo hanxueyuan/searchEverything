@@ -5,16 +5,16 @@ use std::path::Path;
 use std::time::Instant;
 use walkdir::WalkDir;
 
-/// 搜索执行函数
+/// Search execution function
 ///
-/// 支持三种搜索模式：
-/// - 通配符（默认）：*.pdf, report*.docx
-/// - 正则表达式：--regex ".*\.rs$"
-/// - 模糊搜索：--fuzzy cargo
+/// Supports three search modes:
+/// - Wildcard (default): *.pdf, report*.docx
+/// - Regular expression: --regex ".*\.rs$"
+/// - Fuzzy search: --fuzzy cargo
 ///
-/// 支持流式输出：
-/// - --stream：边匹配边输出
-/// - --page-size N：每页显示 N 条结果
+/// Supports streaming output:
+/// - --stream: Display results in real-time
+/// - --page-size N: Display N results per page
 #[allow(clippy::too_many_arguments)]
 pub fn execute(
     pattern: &str,
@@ -29,14 +29,14 @@ pub fn execute(
 ) -> Result<()> {
     let start_time = Instant::now();
     
-    // 编译正则表达式（如果需要）
+    // Compile regex pattern (if needed)
     let regex_pattern = if use_regex {
         Some(Regex::new(pattern)?)
     } else {
         None
     };
 
-    // 创建流式输出器
+    // Create streaming output
     let mut stream_output = StreamOutput::new(format.clone(), page_size);
 
     let mut results = Vec::new();
@@ -48,17 +48,17 @@ pub fn execute(
         let file_name = entry.file_name().to_string_lossy();
         let mut matched = false;
 
-        // 根据模式匹配
+        // Match based on mode
         if use_regex {
-            // 正则模式
+            // Regex mode
             if let Some(ref re) = regex_pattern {
                 matched = re.is_match(&file_name);
             }
         } else if use_fuzzy {
-            // 模糊搜索（简单实现：包含匹配）
+            // Fuzzy search (simple implementation: contains match)
             matched = file_name.to_lowercase().contains(&pattern.to_lowercase());
         } else {
-            // 通配符模式（默认）
+            // Wildcard mode (default)
             matched = matches_pattern(&pattern.to_lowercase(), &file_name.to_lowercase());
         }
 
@@ -67,14 +67,14 @@ pub fn execute(
             let result = SearchResult::from_path(entry.path(), &metadata);
 
             if stream {
-                // 流式输出：立即输出结果
+                // Streaming output: display results immediately
                 stream_output.write(&result)?;
             } else {
-                // 批量输出：先收集结果
+                // Batch output: collect results first
                 results.push(result);
             }
 
-            // 检查是否达到限制
+            // Check if limit reached
             if stream {
                 if stream_output.count() >= limit {
                     break;
@@ -86,22 +86,22 @@ pub fn execute(
             }
         }
 
-        // 定期输出进度（每 1000 个文件）
+        // Output progress periodically (every 1000 files)
         if stream && scanned % 1000 == 0 {
             stream_output.write_progress(scanned, stream_output.count())?;
         }
     }
 
-    // 如果不是流式输出，现在输出所有结果
+    // If not streaming output, output all results now
     if !stream {
-        // 模糊搜索时按相关度排序
+        // Sort by relevance for fuzzy search
         if use_fuzzy {
             results.sort_by(|a, b| {
                 let a_name = a.path.to_lowercase();
                 let b_name = b.path.to_lowercase();
                 let pattern_lower = pattern.to_lowercase();
 
-                // 包含匹配度排序
+                // Containment relevance sort
                 let a_score = if a_name.starts_with(&pattern_lower) {
                     2
                 } else if a_name.contains(&pattern_lower) {
@@ -121,7 +121,7 @@ pub fn execute(
             });
         }
 
-        // 输出结果
+        // Output results
         match format {
             OutputFormat::Text => {
                 for result in &results {
@@ -129,7 +129,7 @@ pub fn execute(
                 }
             }
             OutputFormat::Json => {
-                // 计算摘要信息
+                // Calculate summary information
                 let total_size: u64 = results.iter().map(|r| r.size).sum();
                 let file_types: std::collections::HashMap<String, usize> = {
                     let mut map = std::collections::HashMap::new();
@@ -164,12 +164,12 @@ pub fn execute(
         }
 
         eprintln!(
-            "搜索完成：共找到 {} 个结果（扫描了 {} 个文件）",
+            "Search complete: found {} results (scanned {} files)",
             results.len(),
             scanned
         );
     } else {
-        // 流式输出完成
+        // Streaming output complete
         stream_output.finish()?;
     }
 
