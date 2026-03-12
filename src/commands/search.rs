@@ -2,6 +2,7 @@ use crate::output::{OutputFormat, SearchResult, StreamOutput};
 use anyhow::Result;
 use regex::Regex;
 use std::path::Path;
+use std::time::Instant;
 use walkdir::WalkDir;
 
 /// 搜索执行函数
@@ -26,6 +27,8 @@ pub fn execute(
     stream: bool,
     page_size: Option<usize>,
 ) -> Result<()> {
+    let start_time = Instant::now();
+    
     // 编译正则表达式（如果需要）
     let regex_pattern = if use_regex {
         Some(Regex::new(pattern)?)
@@ -126,10 +129,34 @@ pub fn execute(
                 }
             }
             OutputFormat::Json => {
+                // 计算摘要信息
+                let total_size: u64 = results.iter().map(|r| r.size).sum();
+                let file_types: std::collections::HashMap<String, usize> = {
+                    let mut map = std::collections::HashMap::new();
+                    for r in &results {
+                        *map.entry(r.file_type.clone()).or_insert(0) += 1;
+                    }
+                    map
+                };
+                let file_types_summary: Vec<String> = file_types
+                    .iter()
+                    .map(|(ft, count)| format!("{}: {}", ft, count))
+                    .collect();
+                
+                let search_time_ms = start_time.elapsed().as_millis() as u64;
+                
                 let output = serde_json::json!({
                     "results": results,
                     "total": results.len(),
                     "scanned": scanned,
+                    "search_time_ms": search_time_ms,
+                    "summary": {
+                        "total_size": total_size,
+                        "total_size_human": crate::output::format_size(total_size),
+                        "file_types": file_types_summary.join(", "),
+                        "oldest_file": results.iter().min_by_key(|r| r.modified.clone()).map(|r| r.path.clone()).unwrap_or_default(),
+                        "newest_file": results.iter().max_by_key(|r| r.modified.clone()).map(|r| r.path.clone()).unwrap_or_default()
+                    },
                     "error": null
                 });
                 println!("{}", output);

@@ -176,19 +176,26 @@ openclaw skills register searchEverything
 
 ```json
 {
-  "success": true,
-  "data": {
-    "results": [
-      {
-        "path": "/home/user/document.pdf",
-        "size": 1048576,
-        "size_human": "1.0 MB",
-        "modified": "2026-03-10T14:30:00Z",
-        "is_dir": false
-      }
-    ],
-    "total": 1,
-    "search_time_ms": 45
+  "results": [
+    {
+      "path": "/home/user/document.pdf",
+      "size": 1048576,
+      "size_human": "1.0 MB",
+      "modified": "2026-03-10T14:30:00+00:00",
+      "modified_human": "2 天前",
+      "file_type": "pdf",
+      "is_dir": false
+    }
+  ],
+  "total": 1,
+  "scanned": 15234,
+  "search_time_ms": 45,
+  "summary": {
+    "total_size": 1048576,
+    "total_size_human": "1.0 MB",
+    "file_types": "pdf: 1",
+    "oldest_file": "/home/user/document.pdf",
+    "newest_file": "/home/user/document.pdf"
   },
   "error": null
 }

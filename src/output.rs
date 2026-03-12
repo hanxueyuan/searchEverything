@@ -3,13 +3,17 @@
 use clap::ValueEnum;
 use serde::Serialize;
 use std::io::{self, Write};
+use std::time::{UNIX_EPOCH, SystemTime};
 
 /// 搜索结果
 #[derive(Serialize, Clone)]
 pub struct SearchResult {
     pub path: String,
     pub size: u64,
-    pub modified: String,
+    pub size_human: String,      // 新增：人类可读的文件大小
+    pub modified: String,         // 修改为：ISO 8601 格式
+    pub modified_human: String,   // 新增：人类可读的时间
+    pub file_type: String,        // 新增：文件类型
     pub is_dir: bool,
 }
 
@@ -121,6 +125,65 @@ impl StreamOutput {
     }
 }
 
+/// 格式化文件大小为人类可读格式
+pub fn format_size(bytes: u64) -> String {
+    const KB: u64 = 1024;
+    const MB: u64 = 1024 * KB;
+    const GB: u64 = 1024 * MB;
+    const TB: u64 = 1024 * GB;
+
+    match bytes {
+        b if b < KB => format!("{} B", b),
+        b if b < MB => format!("{:.1} KB", b as f64 / KB as f64),
+        b if b < GB => format!("{:.1} MB", b as f64 / MB as f64),
+        b if b < TB => format!("{:.1} GB", b as f64 / GB as f64),
+        b => format!("{:.1} TB", b as f64 / TB as f64),
+    }
+}
+
+/// 格式化时间为人类可读格式
+fn format_time_human(secs_since_epoch: u64) -> String {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    
+    let diff = if now > secs_since_epoch {
+        now - secs_since_epoch
+    } else {
+        0
+    };
+
+    match diff {
+        0..=5 => "刚刚".to_string(),
+        6..=59 => format!("{} 秒前", diff),
+        60..=3599 => format!("{} 分钟前", diff / 60),
+        3600..=86399 => format!("{} 小时前", diff / 3600),
+        86400..=604799 => format!("{} 天前", diff / 86400),
+        604800..=2591999 => format!("{} 周前", diff / 604800),
+        2592000..=31535999 => format!("{} 个月前", diff / 2592000),
+        _ => format!("{} 年前", diff / 31536000),
+    }
+}
+
+/// 从路径提取文件类型（扩展名）
+fn extract_file_type(path: &str) -> String {
+    std::path::Path::new(path)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_lowercase()
+}
+
+/// 格式化时间为 ISO 8601 格式
+fn format_iso8601(secs_since_epoch: u64) -> String {
+    use chrono::{DateTime, Utc};
+    
+    DateTime::from_timestamp(secs_since_epoch as i64, 0)
+        .map(|dt| dt.with_timezone(&Utc).to_rfc3339())
+        .unwrap_or_default()
+}
+
 impl SearchResult {
     pub fn format(&self, format: &OutputFormat) -> String {
         match format {
@@ -131,18 +194,26 @@ impl SearchResult {
 
     /// 从文件元数据创建 SearchResult
     pub fn from_path(path: &std::path::Path, metadata: &std::fs::Metadata) -> Self {
-        use std::time::UNIX_EPOCH;
-
+        let path_str = path.to_string_lossy().to_string();
+        let size = metadata.len();
+        let is_dir = metadata.is_dir();
+        
+        // 获取修改时间
+        let modified_secs = metadata
+            .modified()
+            .ok()
+            .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        
         Self {
-            path: path.to_string_lossy().to_string(),
-            size: metadata.len(),
-            modified: metadata
-                .modified()
-                .ok()
-                .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-                .map(|d| d.as_secs().to_string())
-                .unwrap_or_default(),
-            is_dir: metadata.is_dir(),
+            path: path_str.clone(),
+            size,
+            size_human: format_size(size),
+            modified: format_iso8601(modified_secs),
+            modified_human: format_time_human(modified_secs),
+            file_type: if is_dir { "directory".to_string() } else { extract_file_type(&path_str) },
+            is_dir,
         }
     }
 }

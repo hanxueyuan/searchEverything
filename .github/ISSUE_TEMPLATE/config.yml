@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 项目文档
+    url: https://github.com/your-org/searchEverything/tree/main/docs
+    about: 在提交 Issue 前，请先查阅项目文档
+  - name: 💬 讨论区
+    url: https://github.com/your-org/searchEverything/discussions
+    about: 一般性问题或讨论请在 Discussions 中发起
+  - name: 📧 联系我们
+    url: mailto:support@searcheverything.dev
+    about: 其他问题请发送邮件

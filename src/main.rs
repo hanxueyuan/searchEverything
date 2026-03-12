@@ -151,16 +151,7 @@ enum Commands {
     #[command(hide = true)]
     Context,
 
-    /// 显示结构化帮助
-    Help {
-        /// 命令名称
-        #[arg(default_value = "")]
-        command: String,
 
-        /// JSON 格式输出
-        #[arg(long)]
-        json: bool,
-    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -395,13 +386,7 @@ fn main() -> Result<()> {
         Commands::Context => {
             context::print_context()?;
         }
-        Commands::Help { command, json } => {
-            if json {
-                print_help_json(&command)?;
-            } else {
-                print_help_text(&command)?;
-            }
-        }
+
     }
 
     Ok(())

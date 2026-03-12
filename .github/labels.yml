@@ -1,0 +1,107 @@
+# GitHub Issue Labels Configuration
+# 使用方法：在 GitHub 仓库 Settings → Labels 中导入，或使用 GitHub CLI 批量创建
+
+# 类型标签
+- name: "bug"
+  color: "d73a4a"
+  description: "Something isn't working"
+
+- name: "enhancement"
+  color: "a2eeef"
+  description: "New feature or request"
+
+- name: "documentation"
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: "question"
+  color: "d876e3"
+  description: "Further information is requested"
+
+- name: "testing"
+  color: "e4e669"
+  description: "Testing related issues"
+
+# 优先级标签
+- name: "P0"
+  color: "b60205"
+  description: "Critical - System down, data loss, security vulnerability"
+
+- name: "P1"
+  color: "d93f0b"
+  description: "High - Core functionality broken"
+
+- name: "P2"
+  color: "fbca04"
+  description: "Medium - Feature broken with workaround"
+
+- name: "P3"
+  color: "fef2c0"
+  description: "Low - Nice to have"
+
+# 状态标签
+- name: "triage"
+  color: "c5def5"
+  description: "Needs triage"
+
+- name: "confirmed"
+  color: "0e8a16"
+  description: "Issue confirmed"
+
+- name: "in progress"
+  color: "0052cc"
+  description: "Being worked on"
+
+- name: "needs info"
+  color: "f9d0c4"
+  description: "Needs more information"
+
+- name: "blocked"
+  color: "e11d21"
+  description: "Blocked by something"
+
+- name: "ready for review"
+  color: "0052cc"
+  description: "Ready for review"
+
+# 特殊标签
+- name: "good first issue"
+  color: "7057ff"
+  description: "Good for newcomers"
+
+- name: "help wanted"
+  color: "008672"
+  description: "Extra attention is needed"
+
+- name: "wontfix"
+  color: "ffffff"
+  description: "This will not be worked on"
+
+- name: "duplicate"
+  color: "cfd3d7"
+  description: "This issue or pull request already exists"
+
+- name: "invalid"
+  color: "e4e669"
+  description: "This doesn't seem right"
+
+# 范围标签
+- name: "cli"
+  color: "5319e7"
+  description: "Command line interface"
+
+- name: "search"
+  color: "1d76db"
+  description: "Search functionality"
+
+- name: "config"
+  color: "006b75"
+  description: "Configuration"
+
+- name: "performance"
+  color: "f7c6c7"
+  description: "Performance related"
+
+- name: "security"
+  color: "d93f0b"
+  description: "Security related"
