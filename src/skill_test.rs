@@ -1,12 +1,12 @@
-/// OpenClaw Skill 测试工具
-///
-/// 用于测试 Skill 触发和命令生成
-///
-/// 功能：
-/// - 测试 trigger_patterns 是否正确触发对应命令
-/// - 验证参数解析
-/// - 验证 JSON 输出格式
-/// - 生成测试报告
+// OpenClaw Skill 测试工具
+//
+// 用于测试 Skill 触发和命令生成
+//
+// 功能：
+// - 测试 trigger_patterns 是否正确触发对应命令
+// - 验证参数解析
+// - 验证 JSON 输出格式
+// - 生成测试报告
 #![allow(dead_code)]
 
 use anyhow::Result;

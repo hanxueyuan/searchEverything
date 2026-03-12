@@ -1,0 +1,28 @@
+# 测试报告
+reports/
+*.report.md
+
+# 测试日志
+logs/
+*.log
+
+# 临时文件
+tmp/
+*.tmp
+
+# 覆盖率报告
+coverage/
+nyc_output/
+
+# Node modules (如果在本地安装)
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

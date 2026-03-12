@@ -1,294 +1,551 @@
+# searchEverything OpenClaw Skill
+# 跨平台文件搜索 CLI 工具 - 面向 OpenClaw 深度集成设计
+# GitHub: https://github.com/hanxueyuan/searchEverything
+# 文档：https://github.com/hanxueyuan/searchEverything/blob/main/docs/OPENCLAW_INTEGRATION.md
+
 name: searchEverything
-description: |
-  本地文件搜索和管理 CLI 工具（纯命令行，无 GUI）。
-  使用场景：搜索文件、查看文件信息、读取文件内容、文件操作（复制/移动/删除）。
-  命令：searchEverything search, searchEverything info, searchEverything cat, searchEverything copy, 等
-  安装位置：/usr/local/bin/searchEverything 或 ~/.cargo/bin/searchEverything
-  支持三种搜索模式：通配符（默认）、正则表达式（--regex）、模糊搜索（--fuzzy）
-  
+version: 0.2.0
+description: "跨平台文件搜索工具，支持通配符、正则、模糊搜索，提供文件操作和索引管理能力"
+author: 韩雪原 <xueyuan_han@163.com>
+license: MIT
+homepage: https://github.com/hanxueyuan/searchEverything
+
+#===============================================================================
+# 安装钩子 - 自动下载并安装可执行文件
+#===============================================================================
+on_install:
+  script: scripts/openclaw-install.sh
+  description: "自动下载并安装 searchEverything 可执行文件"
+  platforms: [linux, macos, windows]
+  timeout_seconds: 300
+  post_install_message: |
+    ✅ searchEverything 安装完成！
+    
+    使用说明:
+    - 搜索文件：searchEverything search "*.pdf"
+    - 查看信息：searchEverything info <文件路径>
+    - 读取内容：searchEverything cat <文件路径>
+    - 索引管理：searchEverything index list
+    
+    OpenClaw 自然语言触发:
+    - "搜索 PDF 文件" → 自动调用 search 命令
+    - "查看这个文件的信息" → 自动调用 info 命令
+    - "读取配置文件" → 自动调用 cat 命令
+    - "添加工作目录到索引" → 自动调用 index_add 命令
+    
+    配置文件位置：~/.openclaw/skills/searchEverything/config.yaml
+    日志文件位置：~/.openclaw/skills/searchEverything/logs/
+    
+    如遇到命令未找到，请确保 ~/.local/bin 已添加到 PATH
+
+#===============================================================================
+# 更新钩子 - 支持版本检查和更新
+#===============================================================================
+on_update:
+  script: scripts/openclaw-update.sh
+  description: "检查并更新到最新版本"
+  check_version: true
+  auto_update: false  # 用户确认后更新
+  min_version: "0.2.0"
+
+#===============================================================================
+# 卸载钩子 - 清理安装文件
+#===============================================================================
+on_uninstall:
+  script: scripts/openclaw-uninstall.sh
+  description: "卸载 searchEverything"
+  modes:
+    - name: full
+      description: "完全卸载，删除所有数据"
+      default: true
+    - name: keep_config
+      description: "保留配置文件和索引"
+    - name: disable_only
+      description: "仅禁用 Skill，保留所有数据"
+
+#===============================================================================
+# 依赖检查
+#===============================================================================
+dependencies:
+  - name: "PATH includes ~/.local/bin"
+    check: "command -v searchEverything"
+    fix_message: |
+      请将 ~/.local/bin 添加到 PATH:
+      echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+      source ~/.bashrc
+  - name: "curl available"
+    check: "command -v curl"
+    fix_message: "请安装 curl: sudo apt install curl (Linux) 或 brew install curl (macOS)"
+  - name: "OpenClaw runtime"
+    check: "command -v openclaw"
+    optional: true
+    fix_message: "OpenClaw 未安装，部分功能可能不可用"
+
+#===============================================================================
+# 版本管理
+#===============================================================================
+version:
+  source: "github:hanxueyuan/searchEverything"
+  auto_update: true
+  min_version: "0.2.0"
+  release_api: "https://api.github.com/repos/hanxueyuan/searchEverything/releases/latest"
+  binary_pattern: "searchEverything-{arch}-{os}{ext}"
+
+#===============================================================================
+# 命令定义
+#===============================================================================
 commands:
+  # ==================== 搜索命令 ====================
   - name: search
-    description: 搜索文件（支持通配符 * 和 ?、正则表达式、模糊搜索）
+    description: "搜索文件"
+    aliases: ["find", "lookup", "查询"]
     trigger_patterns:
       - "搜索.*文件"
       - "查找.*"
-      - "有没有.*"
       - "找.*文件"
-      - ".*在哪里"
-      - ".*在哪个目录"
-    template: "searchEverything search '{pattern}' --path {path} --limit {limit} --format json{regex_flag}{fuzzy_flag}"
-    parameters:
+      - "search.*files"
+      - "find.*"
+      - "有哪些.*文件"
+    arguments:
       - name: pattern
         type: string
         required: true
-        description: 搜索模式，支持通配符（如 *.pdf, report*.docx）、正则表达式或模糊关键词
-        examples:
-          - "*.pdf"
-          - "report*"
-          - "*.rs"
+        description: "搜索模式 (支持通配符 * 和 ?)"
+        position: 0
       - name: path
         type: string
         required: false
-        default: "."
-        description: 搜索路径，默认当前目录
-        examples:
-          - "D:/work"
-          - "/home/user/documents"
-          - "."
+        description: "搜索路径，默认为当前目录"
+        flag: "--path"
       - name: limit
         type: number
         required: false
         default: 100
-        description: 最大返回结果数
-        examples:
-          - 10
-          - 50
-          - 100
-      - name: regex_flag
-        type: string
-        required: false
-        default: ""
-        description: 使用正则表达式模式（--regex）
-        examples:
-          - ""
-          - " --regex"
-      - name: fuzzy_flag
-        type: string
-        required: false
-        default: ""
-        description: 使用模糊搜索模式（--fuzzy）
-        examples:
-          - ""
-          - " --fuzzy"
-
-  - name: info
-    description: 查看文件详细信息（大小、修改时间、权限等）
-    trigger_patterns:
-      - "文件信息"
-      - "查看.*信息"
-      - "这个文件.*"
-      - ".*多大"
-      - ".*什么时候修改"
-    template: "searchEverything info {file_path}{json_flag}"
-    parameters:
-      - name: file_path
-        type: string
-        required: true
-        description: 文件路径
-        examples:
-          - "D:/work/report.pdf"
-          - "/home/user/test.rs"
-      - name: json_flag
-        type: string
-        required: false
-        default: ""
-        description: 是否 JSON 输出（--json）
-        examples:
-          - ""
-          - " --json"
-
-  - name: cat
-    description: 读取文件内容（支持文本文件预览）
-    trigger_patterns:
-      - "打开.*"
-      - "读取.*"
-      - "查看内容"
-      - "显示.*内容"
-      - ".*里面是什么"
-    template: "searchEverything cat {file_path}{lines_flag}{tail_flag}"
-    parameters:
-      - name: file_path
-        type: string
-        required: true
-        description: 文件路径
-        examples:
-          - "README.md"
-          - "D:/work/notes.txt"
-      - name: lines_flag
-        type: string
-        required: false
-        default: ""
-        description: 显示行数（--lines N）
-        examples:
-          - ""
-          - " --lines 10"
-          - " --lines 50"
-      - name: tail_flag
+        description: "结果数量限制"
+        flag: "--limit"
+      - name: regex
         type: boolean
         required: false
         default: false
-        description: 显示末尾 N 行（--tail）
-        examples:
-          - false
-          - true
+        description: "使用正则表达式搜索"
+        flag: "--regex"
+      - name: fuzzy
+        type: boolean
+        required: false
+        default: false
+        description: "使用模糊搜索"
+        flag: "--fuzzy"
+      - name: case_sensitive
+        type: boolean
+        required: false
+        default: false
+        description: "区分大小写"
+        flag: "--case-sensitive"
+    execution:
+      command: searchEverything
+      args: ["search", "{{pattern}}", "{{#if path}}--path {{path}}{{/if}}", "{{#if limit}}--limit {{limit}}{{/if}}", "{{#if regex}}--regex{{/if}}", "{{#if fuzzy}}--fuzzy{{/if}}", "{{#if case_sensitive}}--case-sensitive{{/if}}"]
+    output:
+      format: json
+      parse_results: true
 
-  - name: copy
-    description: 复制文件或目录
+  # ==================== 文件信息命令 ====================
+  - name: info
+    description: "查看文件详细信息"
+    aliases: ["fileinfo", "stat", "文件信息"]
     trigger_patterns:
-      - "复制.*"
-      - "拷贝.*"
-      - "把这个.*到.*"
-    template: "searchEverything copy {source} {dest}"
-    parameters:
-      - name: source
-        type: string
-        required: true
-        description: 源文件路径（支持通配符）
-        examples:
-          - "D:/work/report.pdf"
-          - "*.txt"
-      - name: dest
-        type: string
-        required: true
-        description: 目标路径
-        examples:
-          - "D:/backup/"
-          - "/home/user/documents/"
-
-  - name: move
-    description: 移动文件或目录
-    trigger_patterns:
-      - "移动.*"
-      - "剪切.*"
-      - "把这个.*移到.*"
-    template: "searchEverything move {source} {dest}"
-    parameters:
-      - name: source
-        type: string
-        required: true
-        description: 源文件路径
-        examples:
-          - "D:/work/old/report.pdf"
-          - "temp.txt"
-      - name: dest
-        type: string
-        required: true
-        description: 目标路径
-        examples:
-          - "D:/work/new/"
-          - "/home/user/archive/"
-
-  - name: delete
-    description: 删除文件或目录
-    trigger_patterns:
-      - "删除.*"
-      - "移除.*"
-      - "不要.*了"
-      - "清理.*"
-    template: "searchEverything delete {path}{force_flag}"
-    parameters:
+      - "查看.*信息"
+      - "文件信息"
+      - "info.*file"
+      - "file.*info"
+      - "这个文件.*信息"
+    arguments:
       - name: path
         type: string
         required: true
-        description: 文件路径（支持通配符）
-        examples:
-          - "D:/temp/*.tmp"
-          - "old_backup.zip"
-      - name: force_flag
-        type: string
-        required: false
-        default: ""
-        description: 强制删除不确认（--force）
-        examples:
-          - ""
-          - " --force"
+        description: "文件路径"
+        position: 0
+    execution:
+      command: searchEverything
+      args: ["info", "{{path}}"]
+    output:
+      format: json
+      pretty_print: true
 
-  - name: index_status
-    description: 查看索引状态
+  # ==================== 读取文件命令 ====================
+  - name: cat
+    description: "读取文件内容"
+    aliases: ["read", "view", "读取"]
     trigger_patterns:
-      - "索引状态"
-      - "索引.*怎么样"
-      - "索引更新.*"
-    template: "searchEverything index status"
-    parameters: []
+      - "读取.*内容"
+      - "查看.*内容"
+      - "cat.*file"
+      - "read.*file"
+      - "打开.*文件"
+    arguments:
+      - name: path
+        type: string
+        required: true
+        description: "文件路径"
+        position: 0
+      - name: lines
+        type: number
+        required: false
+        description: "读取行数"
+        flag: "--lines"
+    execution:
+      command: searchEverything
+      args: ["cat", "{{path}}", "{{#if lines}}--lines {{lines}}{{/if}}"]
+    output:
+      format: text
+      max_lines: 1000
+
+  # ==================== 复制文件命令 ====================
+  - name: copy
+    description: "复制文件"
+    aliases: ["cp", "拷贝"]
+    trigger_patterns:
+      - "复制.*文件"
+      - "copy.*file"
+      - "拷贝.*"
+      - "把.*复制到"
+    arguments:
+      - name: source
+        type: string
+        required: true
+        description: "源文件路径"
+        position: 0
+      - name: destination
+        type: string
+        required: true
+        description: "目标路径"
+        position: 1
+    execution:
+      command: searchEverything
+      args: ["copy", "{{source}}", "{{destination}}"]
+    confirmation:
+      required: true
+      message: "确定要复制文件吗？"
+
+  # ==================== 移动文件命令 ====================
+  - name: move
+    description: "移动文件"
+    aliases: ["mv", "剪切"]
+    trigger_patterns:
+      - "移动.*文件"
+      - "move.*file"
+      - "剪切.*"
+      - "把.*移动到"
+    arguments:
+      - name: source
+        type: string
+        required: true
+        description: "源文件路径"
+        position: 0
+      - name: destination
+        type: string
+        required: true
+        description: "目标路径"
+        position: 1
+    execution:
+      command: searchEverything
+      args: ["move", "{{source}}", "{{destination}}"]
+    confirmation:
+      required: true
+      message: "确定要移动文件吗？"
+
+  # ==================== 删除文件命令 ====================
+  - name: delete
+    description: "删除文件"
+    aliases: ["rm", "remove", "删除"]
+    trigger_patterns:
+      - "删除.*文件"
+      - "delete.*file"
+      - "移除.*"
+      - "删掉.*"
+    arguments:
+      - name: path
+        type: string
+        required: true
+        description: "文件路径"
+        position: 0
+      - name: force
+        type: boolean
+        required: false
+        default: false
+        description: "强制删除，不确认"
+        flag: "--force"
+    execution:
+      command: searchEverything
+      args: ["delete", "{{path}}", "{{#if force}}--force{{/if}}"]
+    confirmation:
+      required: true
+      message: "确定要删除这个文件吗？此操作不可恢复！"
+      skip_if_force: true
+
+  # ==================== 索引管理命令 ====================
+  - name: index_add
+    description: "添加索引路径"
+    aliases: ["index-add", "add-index"]
+    trigger_patterns:
+      - "添加.*索引"
+      - "index.*add"
+      - "把这个目录加入索引"
+    arguments:
+      - name: path
+        type: string
+        required: true
+        description: "要索引的路径"
+        flag: "--path"
+    execution:
+      command: searchEverything
+      args: ["index", "add", "--path", "{{path}}"]
+
+  - name: index_remove
+    description: "移除索引路径"
+    aliases: ["index-remove", "remove-index"]
+    trigger_patterns:
+      - "移除.*索引"
+      - "index.*remove"
+      - "从索引中删除"
+    arguments:
+      - name: path
+        type: string
+        required: true
+        description: "要移除的路径"
+        flag: "--path"
+    execution:
+      command: searchEverything
+      args: ["index", "remove", "--path", "{{path}}"]
+
+  - name: index_list
+    description: "列出索引路径"
+    aliases: ["index-list", "list-index", "索引列表"]
+    trigger_patterns:
+      - "列出.*索引"
+      - "索引列表"
+      - "index.*list"
+      - "查看索引"
+    execution:
+      command: searchEverything
+      args: ["index", "list"]
 
   - name: index_rebuild
-    description: 重建文件索引
+    description: "重建索引"
+    aliases: ["index-rebuild", "rebuild-index"]
     trigger_patterns:
-      - "重建索引"
-      - "更新索引"
-      - "刷新索引"
-    template: "searchEverything index rebuild --path {path}"
-    parameters:
+      - "重建.*索引"
+      - "index.*rebuild"
+      - "重新索引"
+    execution:
+      command: searchEverything
+      args: ["index", "rebuild"]
+    confirmation:
+      required: true
+      message: "重建索引可能需要较长时间，确定继续吗？"
+
+  - name: index_status
+    description: "查看索引状态"
+    aliases: ["index-status", "索引状态"]
+    trigger_patterns:
+      - "索引状态"
+      - "index.*status"
+      - "索引进度"
+    execution:
+      command: searchEverything
+      args: ["index", "status"]
+
+  - name: index_exclude_add
+    description: "添加排除路径"
+    aliases: ["index-exclude-add", "exclude-path"]
+    trigger_patterns:
+      - "排除.*路径"
+      - "index.*exclude"
+      - "忽略.*目录"
+    arguments:
       - name: path
         type: string
-        required: false
-        default: "."
-        description: 重建索引的路径
-        examples:
-          - "."
-          - "D:/"
-          - "/home"
+        required: true
+        description: "要排除的路径"
+        position: 0
+    execution:
+      command: searchEverything
+      args: ["index", "exclude", "add", "{{path}}"]
 
-## 使用示例
+  # ==================== 配置管理命令 ====================
+  - name: config_show
+    description: "显示配置"
+    aliases: ["config-show", "show-config"]
+    trigger_patterns:
+      - "显示.*配置"
+      - "查看.*配置"
+      - "config.*show"
+      - "当前配置"
+    execution:
+      command: searchEverything
+      args: ["config", "show"]
 
-### 搜索文件
-```
-用户：搜索工作目录的 PDF 文件
-→ searchEverything search "*.pdf" --path D:/work --format json
+  - name: config_reset
+    description: "重置配置"
+    aliases: ["config-reset", "reset-config"]
+    trigger_patterns:
+      - "重置.*配置"
+      - "config.*reset"
+      - "恢复默认配置"
+    execution:
+      command: searchEverything
+      args: ["config", "reset"]
+    confirmation:
+      required: true
+      message: "确定要重置配置吗？自定义配置将丢失！"
 
-用户：查找所有 Rust 源代码
-→ searchEverything search "*.rs" --format json
+  - name: config_validate
+    description: "验证配置"
+    aliases: ["config-validate", "validate-config"]
+    trigger_patterns:
+      - "验证.*配置"
+      - "config.*validate"
+      - "检查配置"
+    execution:
+      command: searchEverything
+      args: ["config", "validate"]
 
-用户：report 文件在哪里
-→ searchEverything search "report*" --format json
-```
+  # ==================== 更新命令 ====================
+  - name: update
+    description: "检查并更新 searchEverything"
+    aliases: ["upgrade", "更新"]
+    trigger_patterns:
+      - "更新.*search"
+      - "升级.*版本"
+      - "check.*update"
+    execution:
+      command: searchEverything
+      args: ["update"]
 
-### 查看文件
-```
-用户：查看这个文件的信息
-→ searchEverything info D:/work/report.pdf
+  # ==================== 技能测试命令 ====================
+  - name: skill_test
+    description: "运行 Skill 测试"
+    aliases: ["skill-test", "test-skill"]
+    trigger_patterns:
+      - "测试.*技能"
+      - "skill.*test"
+      - "验证安装"
+    execution:
+      command: searchEverything
+      args: ["skill-test"]
 
-用户：README 里面是什么
-→ searchEverything cat README.md --lines 50
+  # ==================== 帮助命令 ====================
+  - name: help
+    description: "显示帮助信息"
+    aliases: ["--help", "-h", "使用说明"]
+    trigger_patterns:
+      - "帮助"
+      - "help"
+      - "使用说明"
+      - "怎么用"
+    execution:
+      command: searchEverything
+      args: ["--help"]
 
-用户：显示日志文件末尾 10 行
-→ searchEverything cat app.log --tail --lines 10
-```
+#===============================================================================
+# 环境变量配置
+#===============================================================================
+env:
+  SEARCH_EVERYTHING_CONFIG: "~/.openclaw/skills/searchEverything/config.yaml"
+  SEARCH_EVERYTHING_INDEX: "~/.openclaw/skills/searchEverything/index-config.yaml"
+  SEARCH_EVERYTHING_AUDIT_LOG: "~/.openclaw/skills/searchEverything/logs/audit.log"
+  SEARCH_EVERYTHING_CACHE: "~/.openclaw/skills/searchEverything/cache/"
+  OPENCLAW_SKILL_ENABLED: "true"
 
-### 文件操作
-```
-用户：把这些文件复制到备份目录
-→ searchEverything copy "D:/work/*.txt" "D:/backup/"
+#===============================================================================
+# 权限要求
+#===============================================================================
+permissions:
+  - filesystem_read
+  - filesystem_write
+  - filesystem_delete
+  - network_download  # 用于更新检查
 
-用户：移动临时文件到归档
-→ searchEverything move temp.zip /archive/
+#===============================================================================
+# OpenClaw 集成配置
+#===============================================================================
+openclaw:
+  # 技能元数据
+  metadata:
+    category: "file_management"
+    tags: ["search", "file", "index", "utility"]
+    icon: "🔍"
+    color: "#4A90D9"
+  
+  # 日志集成
+  logging:
+    enabled: true
+    level: "info"  # debug, info, warn, error
+    output: "~/.openclaw/skills/searchEverything/logs/"
+    format: "json"
+    max_size_mb: 10
+    rotation: true
+  
+  # 审计日志
+  audit:
+    enabled: true
+    log_file: "~/.openclaw/skills/searchEverything/logs/audit.log"
+    log_commands: true
+    log_errors: true
+    retention_days: 30
+  
+  # 配置管理
+  config:
+    managed_by_openclaw: true
+    sync_with_global: true
+    backup_on_change: true
+  
+  # 更新检查
+  update_check:
+    enabled: true
+    interval_days: 7
+    notify_on_update: true
+  
+  # 性能配置
+  performance:
+    max_concurrent_commands: 5
+    timeout_seconds: 60
+    memory_limit_mb: 512
 
-用户：删除所有临时文件
-→ searchEverything delete "*.tmp" --force
-```
+#===============================================================================
+# 错误处理配置
+#===============================================================================
+error_handling:
+  # 安装失败处理
+  on_install_failure:
+    rollback: true
+    show_manual_instructions: true
+    log_error: true
+  
+  # 运行失败处理
+  on_command_failure:
+    retry_count: 1
+    show_suggestion: true
+    log_error: true
+  
+  # 卸载失败处理
+  on_uninstall_failure:
+    force_option: true
+    show_cleanup_guide: true
+    log_error: true
 
-## 输出格式
-
-### JSON 输出（默认用于 OpenClaw）
-```json
-{
-  "results": [
-    {
-      "path": "/home/user/document.pdf",
-      "size": 1048576,
-      "modified": "2026-03-10T14:30:00Z",
-      "is_dir": false
-    }
-  ],
-  "total": 1,
-  "error": null
-}
-```
-
-### 错误响应
-```json
-{
-  "error": "文件未找到",
-  "code": 404,
-  "details": "路径 /not/exist 不存在"
-}
-```
-
-## 注意事项
-
-1. **路径格式**：Windows 使用 `D:/work` 或 `D:\work`，Linux 使用 `/home/user`
-2. **通配符**：支持 `*`（任意字符）和 `?`（单个字符）
-3. **JSON 输出**：OpenClaw 调用时自动使用 `--format json`
-4. **权限**：某些操作可能需要管理员权限
-5. **性能**：大量文件搜索建议使用索引功能
+#===============================================================================
+# 测试配置
+#===============================================================================
+testing:
+  enabled: true
+  test_command: "searchEverything skill-test"
+  test_cases:
+    - name: "基本搜索"
+      command: "searchEverything search \"*.md\""
+      expected_exit_code: 0
+    - name: "索引列表"
+      command: "searchEverything index list"
+      expected_exit_code: 0
+    - name: "配置显示"
+      command: "searchEverything config show"
+      expected_exit_code: 0

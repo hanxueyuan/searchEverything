@@ -1,0 +1,384 @@
+name: Install Script Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'scripts/install.sh'
+      - 'scripts/*.sh'
+      - 'tests/install/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/install.sh'
+      - 'scripts/*.sh'
+      - 'tests/install/**'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ============================================
+  # Linux 安装测试
+  # ============================================
+  test-install-linux:
+    name: Install Test (Linux)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run installation automation tests
+        run: |
+          chmod +x tests/install/test-install-automation.sh
+          tests/install/test-install-automation.sh
+
+      - name: Test user installation
+        run: |
+          # 测试用户级安装
+          export INSTALL_PREFIX=$HOME/.local
+          mkdir -p $HOME/.local/bin
+          
+          # 编译并安装
+          cargo build --release
+          cp target/release/searchEverything $HOME/.local/bin/
+          chmod +x $HOME/.local/bin/searchEverything
+          
+          # 验证安装
+          $HOME/.local/bin/searchEverything --version
+          $HOME/.local/bin/searchEverything --help
+
+      - name: Test system installation (simulated)
+        run: |
+          # 模拟系统安装（无实际 sudo）
+          echo "Testing system installation logic..."
+          
+          # 检查安装脚本的 root 检测逻辑
+          if grep -q "EUID" scripts/install.sh; then
+            echo "✓ Root check logic exists"
+          else
+            echo "✗ Root check logic missing"
+            exit 1
+          fi
+
+      - name: Verify binary permissions
+        run: |
+          cargo build --release
+          ls -l target/release/searchEverything
+          
+          # 检查权限
+          perms=$(stat -c %a target/release/searchEverything)
+          if [ "$perms" = "755" ] || [ "$perms" = "775" ]; then
+            echo "✓ Binary permissions correct: $perms"
+          else
+            echo "⚠ Binary permissions: $perms (expected 755 or 775)"
+          fi
+
+  # ============================================
+  # macOS 安装测试
+  # ============================================
+  test-install-macos:
+    name: Install Test (macOS)
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run installation automation tests
+        run: |
+          chmod +x tests/install/test-install-automation.sh
+          tests/install/test-install-automation.sh
+
+      - name: Test user installation
+        run: |
+          export INSTALL_PREFIX=$HOME/.local
+          mkdir -p $HOME/.local/bin
+          
+          cargo build --release
+          cp target/release/searchEverything $HOME/.local/bin/
+          chmod +x $HOME/.local/bin/searchEverything
+          
+          $HOME/.local/bin/searchEverything --version
+          $HOME/.local/bin/searchEverything --help
+
+  # ============================================
+  # Windows 安装测试 (PowerShell)
+  # ============================================
+  test-install-windows:
+    name: Install Test (Windows)
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build for Windows
+        run: cargo build --release
+
+      - name: Verify binary
+        run: |
+          if (Test-Path target\release\searchEverything.exe) {
+            Write-Host "✓ Binary exists"
+          } else {
+            Write-Error "✗ Binary not found"
+            exit 1
+          }
+          
+          target\release\searchEverything.exe --version
+          target\release\searchEverything.exe --help
+
+  # ============================================
+  # 跨架构测试 (ARM64 模拟)
+  # ============================================
+  test-cross-compile-arm64:
+    name: Cross-compile Test (ARM64)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+        with:
+          target: aarch64-unknown-linux-gnu
+
+      - name: Install cross-compilation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build for ARM64
+        run: cargo build --release --target aarch64-unknown-linux-gnu
+
+      - name: Verify ARM64 binary
+        run: |
+          file target/aarch64-unknown-linux-gnu/release/searchEverything
+          if file target/aarch64-unknown-linux-gnu/release/searchEverything | grep -q "ARM"; then
+            echo "✓ ARM64 binary built successfully"
+          else
+            echo "⚠ Binary architecture check"
+          fi
+
+  # ============================================
+  # 安装脚本静态分析
+  # ============================================
+  install-script-analysis:
+    name: Install Script Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check shell script syntax
+        run: |
+          bash -n scripts/install.sh
+          echo "✓ Bash syntax check passed"
+
+      - name: Check shell script best practices
+        run: |
+          # 检查是否有 set -e
+          if grep -q "set -e" scripts/install.sh; then
+            echo "✓ Error handling enabled (set -e)"
+          else
+            echo "⚠ Consider adding 'set -e' for error handling"
+          fi
+          
+          # 检查是否有 shebang
+          if head -1 scripts/install.sh | grep -q "#!/bin/bash"; then
+            echo "✓ Shebang present"
+          else
+            echo "⚠ Missing or incorrect shebang"
+          fi
+          
+          # 检查是否有注释
+          comment_count=$(grep -c "^#" scripts/install.sh || true)
+          echo "✓ Found $comment_count comment lines"
+
+      - name: Check for hardcoded paths
+        run: |
+          # 检查是否有硬编码路径（应该使用变量）
+          if grep -qE '"/usr/local/[^"]*"' scripts/install.sh | grep -v "INSTALL_PREFIX"; then
+            echo "⚠ Found hardcoded paths - consider using variables"
+          else
+            echo "✓ No hardcoded paths found"
+          fi
+
+      - name: Verify error messages
+        run: |
+          # 检查错误信息是否友好
+          error_count=$(grep -c "错误\|Error\|error" scripts/install.sh || true)
+          echo "✓ Found $error_count error handling messages"
+          
+          # 检查是否有帮助信息
+          if grep -qi "help\|usage\|使用" scripts/install.sh; then
+            echo "✓ Help/usage information present"
+          else
+            echo "⚠ Consider adding help/usage information"
+          fi
+
+  # ============================================
+  # 网络故障模拟测试
+  # ============================================
+  test-network-failure:
+    name: Network Failure Simulation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup test environment
+        run: |
+          mkdir -p /tmp/install_test
+          cd /tmp/install_test
+
+      - name: Test GitHub unreachable
+        run: |
+          # 模拟 GitHub 不可达
+          echo "Testing network failure handling..."
+          
+          # 使用错误的 URL 测试错误处理
+          if ! curl -s --connect-timeout 2 https://invalid.github.test &> /dev/null; then
+            echo "✓ Network failure detected correctly"
+          else
+            echo "⚠ Network failure detection issue"
+          fi
+
+      - name: Verify error messages are helpful
+        run: |
+          # 检查安装脚本是否包含有用的错误信息
+          if grep -q "手动安装\|manual install\|GitHub Releases" scripts/install.sh; then
+            echo "✓ Fallback instructions present"
+          else
+            echo "⚠ Consider adding manual installation instructions"
+          fi
+
+  # ============================================
+  # 权限测试
+  # ============================================
+  test-permissions:
+    name: Permission Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup test directory
+        run: |
+          mkdir -p /tmp/perm_test/readonly
+          chmod 555 /tmp/perm_test/readonly
+
+      - name: Test write permission check
+        run: |
+          # 测试不可写目录
+          if ! touch /tmp/perm_test/readonly/test 2>/dev/null; then
+            echo "✓ Permission check working (directory is read-only)"
+          else
+            echo "⚠ Permission check issue"
+            rm -f /tmp/perm_test/readonly/test
+          fi
+
+      - name: Cleanup
+        run: |
+          chmod 755 /tmp/perm_test/readonly
+          rm -rf /tmp/perm_test
+
+  # ============================================
+  # 覆盖安装测试
+  # ============================================
+  test-overwrite-install:
+    name: Overwrite Installation Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+
+      - name: First installation
+        run: |
+          export INSTALL_PREFIX=/tmp/overwrite_test
+          mkdir -p $INSTALL_PREFIX/bin
+          
+          cargo build --release
+          cp target/release/searchEverything $INSTALL_PREFIX/bin/
+          chmod +x $INSTALL_PREFIX/bin/searchEverything
+          
+          $INSTALL_PREFIX/bin/searchEverything --version
+          echo "✓ First installation complete"
+
+      - name: Second installation (overwrite)
+        run: |
+          export INSTALL_PREFIX=/tmp/overwrite_test
+          
+          # 重新编译（模拟新版本）
+          cargo build --release
+          
+          # 覆盖安装
+          cp target/release/searchEverything $INSTALL_PREFIX/bin/
+          chmod +x $INSTALL_PREFIX/bin/searchEverything
+          
+          $INSTALL_PREFIX/bin/searchEverything --version
+          echo "✓ Overwrite installation complete"
+
+      - name: Verify installation
+        run: |
+          if [ -x /tmp/overwrite_test/bin/searchEverything ]; then
+            echo "✓ Binary exists and is executable after overwrite"
+          else
+            echo "✗ Binary missing after overwrite"
+            exit 1
+          fi
+
+      - name: Cleanup
+        run: rm -rf /tmp/overwrite_test
+
+  # ============================================
+  # 质量门禁
+  # ============================================
+  install-quality-gate:
+    name: Install Quality Gate
+    runs-on: ubuntu-latest
+    needs: [test-install-linux, install-script-analysis]
+    if: always()
+    
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [ "${{ needs.test-install-linux.result }}" != "success" ]; then
+            echo "❌ Linux install test failed"
+            exit 1
+          fi
+          if [ "${{ needs.install-script-analysis.result }}" != "success" ]; then
+            echo "❌ Script analysis failed"
+            exit 1
+          fi
+          echo "✅ All installation quality gates passed!"

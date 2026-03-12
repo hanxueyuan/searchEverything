@@ -1,0 +1,33 @@
+{
+  "name": "searcheverything-openclaw-tests",
+  "version": "1.0.0",
+  "description": "Automated test suite for searchEverything OpenClaw integration",
+  "scripts": {
+    "test": "node scripts/test.js",
+    "test:install": "node scripts/test.js --category install",
+    "test:usage": "node scripts/test.js --category usage",
+    "test:uninstall": "node scripts/test.js --category uninstall",
+    "test:boundary": "node scripts/test.js --category boundary",
+    "test:integration": "node scripts/test.js --category integration",
+    "test:all": "node scripts/test.js",
+    "test:manual": "bash scripts/run_tests.sh",
+    "report": "node scripts/generate_report.js",
+    "clean": "rm -rf reports/* logs/*"
+  },
+  "keywords": [
+    "searchEverything",
+    "OpenClaw",
+    "test",
+    "integration"
+  ],
+  "author": "QA Team",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "mocha": "^10.2.0",
+    "chai": "^4.3.10"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
