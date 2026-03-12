@@ -148,11 +148,7 @@ fn format_time_human(secs_since_epoch: u64) -> String {
         .unwrap()
         .as_secs();
     
-    let diff = if now > secs_since_epoch {
-        now - secs_since_epoch
-    } else {
-        0
-    };
+    let diff = now.saturating_sub(secs_since_epoch);
 
     match diff {
         0..=5 => "just now".to_string(),

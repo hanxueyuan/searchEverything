@@ -393,6 +393,7 @@ fn main() -> Result<()> {
 }
 
 /// Print JSON format help
+#[allow(dead_code)]
 fn print_help_json(command: &str) -> Result<()> {
     use serde_json::json;
 
@@ -429,6 +430,7 @@ fn print_help_json(command: &str) -> Result<()> {
 }
 
 /// Print text format help
+#[allow(dead_code)]
 fn print_help_text(command: &str) -> Result<()> {
     if command.is_empty() {
         println!("searchEverything v{}", env!("CARGO_PKG_VERSION"));
