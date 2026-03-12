@@ -4,10 +4,9 @@
 /// - 初始扫描建立索引
 /// - inotify 监控实时更新
 /// - 低开销，内核级通知
-use super::{FileRecord, IndexBuilder, IndexStats, TrieIndex};
+use super::{FileRecord, IndexBuilder, TrieIndex};
 use anyhow::Result;
 use notify::{Event, EventKind};
-use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -129,7 +128,7 @@ pub fn start_watch(
     exclude_paths: &[String],
     index: &mut TrieIndex,
 ) -> Result<()> {
-    use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+    use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
     use std::sync::mpsc::channel;
     use std::time::Duration;
 
@@ -149,7 +148,7 @@ pub fn start_watch(
     let r = running.clone();
 
     // 设置 Ctrl+C 处理
-    let mut handler = move || {
+    let handler = move || {
         println!("\n停止监控...");
         r.store(false, Ordering::SeqCst);
     };
@@ -262,8 +261,7 @@ pub fn should_exclude(path: &str, exclude_paths: &[String]) -> bool {
         }
 
         // 支持 **/ 通配符 (匹配任意深度的目录)
-        if exclude_lower.starts_with("**/") {
-            let pattern = &exclude_lower[3..];
+        if let Some(pattern) = exclude_lower.strip_prefix("**/") {
             if path_lower.contains(&format!("/{}", pattern)) || path_lower.ends_with(pattern) {
                 return true;
             }
