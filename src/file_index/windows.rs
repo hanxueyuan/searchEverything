@@ -18,6 +18,9 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 #[cfg(target_os = "windows")]
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+
+#[cfg(target_os = "windows")]
 use windows::Win32::Foundation::{CloseHandle, HANDLE, INVALID_HANDLE_VALUE};
 #[cfg(target_os = "windows")]
 use windows::Win32::Storage::FileSystem::{
