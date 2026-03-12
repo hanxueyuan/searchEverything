@@ -150,8 +150,6 @@ enum Commands {
     /// Display context information
     #[command(hide = true)]
     Context,
-
-
 }
 
 #[derive(Subcommand, Debug)]
@@ -386,7 +384,6 @@ fn main() -> Result<()> {
         Commands::Context => {
             context::print_context()?;
         }
-
     }
 
     Ok(())
@@ -450,7 +447,10 @@ fn print_help_text(command: &str) -> Result<()> {
         println!("\nUse 'searchEverything help <command>' for detailed command help");
     } else {
         println!("Command: {}", command);
-        println!("Use 'searchEverything {} --help' for detailed options", command);
+        println!(
+            "Use 'searchEverything {} --help' for detailed options",
+            command
+        );
     }
 
     Ok(())
@@ -463,14 +463,20 @@ fn handle_config(action: crate::ConfigAction) -> Result<()> {
             let config_mgr = ConfigManager::load()?;
             let config = config_mgr.get();
 
-            println!("Configuration file path: {}", config_mgr.get_config_path().display());
+            println!(
+                "Configuration file path: {}",
+                config_mgr.get_config_path().display()
+            );
             println!();
             println!("Current configuration:");
             println!("  Search mode: {}", config.search.default_mode);
             println!("  Default result limit: {}", config.search.default_limit);
             println!("  Output format: {}", config.output.default_format);
             println!("  Auto index: {}", config.index.auto_index);
-            println!("  Delete confirmation: {}", config.file_operations.delete_confirm);
+            println!(
+                "  Delete confirmation: {}",
+                config.file_operations.delete_confirm
+            );
             println!("  Debug mode: {}", config.advanced.debug);
 
             if !config.aliases.is_empty() {
@@ -503,7 +509,10 @@ fn handle_config(action: crate::ConfigAction) -> Result<()> {
             new_mgr.save()?;
 
             println!("Configuration has been reset to defaults");
-            println!("Configuration file: {}", new_mgr.get_config_path().display());
+            println!(
+                "Configuration file: {}",
+                new_mgr.get_config_path().display()
+            );
         }
 
         crate::ConfigAction::Validate => match ConfigManager::load() {

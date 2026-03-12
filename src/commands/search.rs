@@ -28,7 +28,7 @@ pub fn execute(
     page_size: Option<usize>,
 ) -> Result<()> {
     let start_time = Instant::now();
-    
+
     // Compile regex pattern (if needed)
     let regex_pattern = if use_regex {
         Some(Regex::new(pattern)?)
@@ -142,9 +142,9 @@ pub fn execute(
                     .iter()
                     .map(|(ft, count)| format!("{}: {}", ft, count))
                     .collect();
-                
+
                 let search_time_ms = start_time.elapsed().as_millis() as u64;
-                
+
                 let output = serde_json::json!({
                     "results": results,
                     "total": results.len(),

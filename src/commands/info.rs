@@ -24,7 +24,7 @@ fn format_time_human(secs_since_epoch: u64) -> String {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
-    
+
     let diff = now.saturating_sub(secs_since_epoch);
 
     match diff {
@@ -42,7 +42,7 @@ fn format_time_human(secs_since_epoch: u64) -> String {
 /// Format time to ISO 8601 format
 fn format_iso8601(secs_since_epoch: u64) -> String {
     use chrono::{DateTime, Utc};
-    
+
     DateTime::from_timestamp(secs_since_epoch as i64, 0)
         .map(|dt| dt.with_timezone(&Utc).to_rfc3339())
         .unwrap_or_default()
@@ -50,7 +50,7 @@ fn format_iso8601(secs_since_epoch: u64) -> String {
 
 pub fn execute(file: &Path, json: bool) -> Result<()> {
     let metadata = std::fs::metadata(file)?;
-    
+
     // Get file type
     let file_type = if metadata.is_dir() {
         "directory".to_string()
@@ -66,7 +66,7 @@ pub fn execute(file: &Path, json: bool) -> Result<()> {
     let modified_secs = modified.duration_since(UNIX_EPOCH).unwrap().as_secs();
     let modified_iso = format_iso8601(modified_secs);
     let modified_human = format_time_human(modified_secs);
-    
+
     // Format size
     let size = metadata.len();
     let size_human = format_size(size);
@@ -89,7 +89,14 @@ pub fn execute(file: &Path, json: bool) -> Result<()> {
     } else {
         println!("Path: {}", file.to_string_lossy());
         println!("Size: {} ({})", size, size_human);
-        println!("Type: {}", if metadata.is_dir() { "Directory" } else { "File" });
+        println!(
+            "Type: {}",
+            if metadata.is_dir() {
+                "Directory"
+            } else {
+                "File"
+            }
+        );
         println!("Modified: {} ({})", modified_iso, modified_human);
         println!();
         println!("Summary:");

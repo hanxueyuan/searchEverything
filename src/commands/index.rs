@@ -123,7 +123,10 @@ pub fn execute(action: &crate::IndexAction) -> Result<()> {
 
             println!("Index Status");
             println!("═══════════════════════════════════════");
-            println!("Initialized: {}", if config.initialized { "Yes" } else { "No" });
+            println!(
+                "Initialized: {}",
+                if config.initialized { "Yes" } else { "No" }
+            );
             println!();
 
             println!("Indexed paths ({}):", config.indexed_paths.len());

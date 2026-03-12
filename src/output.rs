@@ -3,17 +3,17 @@
 use clap::ValueEnum;
 use serde::Serialize;
 use std::io::{self, Write};
-use std::time::{UNIX_EPOCH, SystemTime};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// 搜索结果
 #[derive(Serialize, Clone)]
 pub struct SearchResult {
     pub path: String,
     pub size: u64,
-    pub size_human: String,      // 新增：人类可读的文件大小
-    pub modified: String,         // 修改为：ISO 8601 格式
-    pub modified_human: String,   // 新增：人类可读的时间
-    pub file_type: String,        // 新增：文件类型
+    pub size_human: String,     // 新增：人类可读的文件大小
+    pub modified: String,       // 修改为：ISO 8601 格式
+    pub modified_human: String, // 新增：人类可读的时间
+    pub file_type: String,      // 新增：文件类型
     pub is_dir: bool,
 }
 
@@ -147,7 +147,7 @@ fn format_time_human(secs_since_epoch: u64) -> String {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
-    
+
     let diff = now.saturating_sub(secs_since_epoch);
 
     match diff {
@@ -174,7 +174,7 @@ fn extract_file_type(path: &str) -> String {
 /// 格式化时间为 ISO 8601 格式
 fn format_iso8601(secs_since_epoch: u64) -> String {
     use chrono::{DateTime, Utc};
-    
+
     DateTime::from_timestamp(secs_since_epoch as i64, 0)
         .map(|dt| dt.with_timezone(&Utc).to_rfc3339())
         .unwrap_or_default()
@@ -193,7 +193,7 @@ impl SearchResult {
         let path_str = path.to_string_lossy().to_string();
         let size = metadata.len();
         let is_dir = metadata.is_dir();
-        
+
         // 获取修改时间
         let modified_secs = metadata
             .modified()
@@ -201,14 +201,18 @@ impl SearchResult {
             .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
             .map(|d| d.as_secs())
             .unwrap_or(0);
-        
+
         Self {
             path: path_str.clone(),
             size,
             size_human: format_size(size),
             modified: format_iso8601(modified_secs),
             modified_human: format_time_human(modified_secs),
-            file_type: if is_dir { "directory".to_string() } else { extract_file_type(&path_str) },
+            file_type: if is_dir {
+                "directory".to_string()
+            } else {
+                extract_file_type(&path_str)
+            },
             is_dir,
         }
     }
