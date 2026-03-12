@@ -1,2 +1,64 @@
-target/
+# 构建产物
+/target/
+**/target/
+*.rlib
+*.rmeta
+
+# 编译产物
+*.o
+*.a
+*.so
+*.dylib
+
+# 调试信息
+*.pdb
+*.dll
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
 *.log
+logs/
+
+# 测试覆盖率
+*.gcno
+*.gcda
+coverage/
+*.lcov
+
+# 本地配置
+*.local.yaml
+*.local.json
+.env.local
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+
+# 开发文档（不发布）
+DEVELOPMENT_*.md
+TEST_*.md
+P0_*.md
+P1_*.md
+*_REPORT.md
+*_SUMMARY.md
+*_COMPLETE.md
+*_VERIFICATION.md
+*_DELIVERY.md
+review-report*.md
+test_report.*
+skill_test_report.*
+
+# Rust 分析产物
+*.profraw
+*.profdata
