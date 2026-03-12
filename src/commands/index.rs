@@ -72,12 +72,13 @@ impl IndexConfig {
         }
 
         // Default exclusion paths
-        let mut excluded_paths = vec![
-            #[cfg(target_os = "windows")]
-            "C:/Windows".to_string(),
-            #[cfg(target_os = "windows")]
-            "C:/Program Files".to_string(),
-        ];
+        let mut excluded_paths = vec![];
+
+        // Add Windows system excludes
+        #[cfg(target_os = "windows")]
+        {
+            excluded_paths.extend(get_windows_system_excludes());
+        }
 
         // Add Linux system excludes
         #[cfg(target_os = "linux")]
