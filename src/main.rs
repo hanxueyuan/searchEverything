@@ -1,7 +1,5 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
-use serde::Serialize;
-use std::fs;
 use std::path::PathBuf;
 
 mod audit;
@@ -333,7 +331,6 @@ fn main() -> Result<()> {
             stream,
             page_size,
         } => {
-            use output::OutputFormat;
             let entry =
                 AuditLogEntry::new("search", vec![pattern.clone(), path.display().to_string()]);
             search::execute(

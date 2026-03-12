@@ -1,10 +1,12 @@
+#![allow(dead_code)]
+
 /// 索引持久化模块
 ///
 /// 实现索引的二进制序列化，支持快速保存和加载：
 /// - 启动时快速加载索引（秒级）
 /// - 定期自动保存
 /// - 增量更新支持
-use crate::file_index::trie::{FileRecord, IndexStats, TrieIndex};
+use crate::file_index::trie::TrieIndex;
 use anyhow::{bail, Context, Result};
 use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Read, Write};
@@ -160,6 +162,7 @@ pub fn get_default_index_path() -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::file_index::FileRecord;
     use std::time::SystemTime;
 
     fn create_test_index() -> TrieIndex {

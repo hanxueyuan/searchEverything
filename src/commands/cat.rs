@@ -6,7 +6,7 @@ pub fn execute(file: &Path, lines: Option<usize>, tail: bool) -> Result<()> {
     let content = fs::read_to_string(file)?;
 
     let output = if let Some(num_lines) = lines {
-        let mut lines_vec: Vec<&str> = content.lines().collect();
+        let lines_vec: Vec<&str> = content.lines().collect();
 
         if tail {
             // 显示末尾 N 行

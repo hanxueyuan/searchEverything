@@ -1,5 +1,5 @@
 use crate::file_index::persistence::get_default_index_path;
-use crate::file_index::{IndexManager, IndexPersistence, TrieIndex};
+use crate::file_index::IndexManager;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fs;

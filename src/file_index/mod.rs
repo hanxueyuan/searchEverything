@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub mod generic;
 pub mod linux;
 pub mod macos;
@@ -12,10 +14,7 @@ pub mod trie;
 pub mod windows;
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::time::SystemTime;
+use std::path::PathBuf;
 
 pub use persistence::IndexPersistence;
 pub use trie::{FileRecord, IndexStats, TrieIndex};
@@ -51,6 +50,7 @@ pub struct IndexManager {
     persistence: Option<IndexPersistence>,
 }
 
+#[allow(dead_code)]
 impl IndexManager {
     /// 创建索引管理器
     pub fn new() -> Result<Self> {

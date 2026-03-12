@@ -1,7 +1,6 @@
 /// 索引命令测试
 use crate::commands::index::{execute, IndexConfig};
 use crate::IndexAction;
-use std::path::PathBuf;
 
 #[test]
 fn test_index_config_auto_init() {

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 /// Windows MFT + USN Journal 索引构建器
 ///
 /// 利用 NTFS 文件系统特性：
@@ -11,10 +13,8 @@
 /// - 处理文件创建、修改、删除、重命名事件
 /// - 支持断点续传（记录最后 USN）
 use super::{FileRecord, IndexBuilder, TrieIndex};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use std::time::SystemTime;
 
 #[cfg(target_os = "windows")]
@@ -151,14 +151,13 @@ fn should_exclude(path: &str, exclude_paths: &[String]) -> bool {
             return true;
         }
 
-        if exclude_lower.starts_with("**/") {
-            let pattern = &exclude_lower[3..];
-            if path_lower.contains(&pattern) {
+        if let Some(pattern) = exclude_lower.strip_prefix("**/") {
+            if path_lower.contains(pattern) {
                 return true;
             }
         }
 
-        if exclude_lower.ends_with("*") {
+        if exclude_lower.ends_with('*') {
             let prefix = &exclude_lower[..exclude_lower.len() - 1];
             if path_lower.starts_with(prefix) {
                 return true;

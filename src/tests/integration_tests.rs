@@ -24,7 +24,7 @@ fn create_test_record(name: &str, path: &str, size: u64, is_dir: bool) -> FileRe
 fn test_index_manager_basic() {
     use crate::file_index::IndexManager;
 
-    let mut manager = IndexManager::new().expect("Failed to create IndexManager");
+    let manager = IndexManager::new().expect("Failed to create IndexManager");
 
     // 初始状态应该没有索引
     assert!(manager.get_index().is_none());
@@ -41,7 +41,7 @@ fn test_index_manager_with_persistence() {
     let temp_dir = tempdir().expect("Failed to create temp dir");
     let index_path = temp_dir.path().join("test-index");
 
-    let mut manager = IndexManager::with_persistence(index_path, 300)
+    let manager = IndexManager::with_persistence(index_path, 300)
         .expect("Failed to create IndexManager with persistence");
 
     assert!(manager.get_index().is_none());

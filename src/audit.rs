@@ -1,8 +1,10 @@
+#![allow(dead_code)]
+
 use anyhow::Result;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File, OpenOptions};
-use std::io::{BufRead, BufReader, Seek, SeekFrom, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 
 /// 审计日志条目

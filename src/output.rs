@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use clap::ValueEnum;
 use serde::Serialize;
 use std::io::{self, Write};

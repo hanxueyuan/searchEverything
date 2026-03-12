@@ -4,7 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 /// 主配置结构
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     /// 搜索配置
     #[serde(default)]
@@ -37,21 +37,6 @@ pub struct Config {
     /// 高级配置
     #[serde(default)]
     pub advanced: AdvancedConfig,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            search: SearchConfig::default(),
-            output: OutputConfig::default(),
-            index: IndexConfig::default(),
-            file_operations: FileOperationsConfig::default(),
-            performance: PerformanceConfig::default(),
-            aliases: std::collections::HashMap::new(),
-            openclaw: OpenClawConfig::default(),
-            advanced: AdvancedConfig::default(),
-        }
-    }
 }
 
 /// 搜索配置

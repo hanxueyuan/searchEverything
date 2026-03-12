@@ -1,9 +1,10 @@
+#![allow(dead_code)]
+
 /// 上下文信息管理模块
 ///
 /// 提供命令执行的上下文数据，帮助大模型理解当前状态
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// 执行上下文
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -223,10 +224,12 @@ fn get_available_memory() -> Result<u64> {
             }
         }
 
-        return Ok(mem_available);
+        Ok(mem_available)
     }
-
-    Ok(0)
+    #[cfg(not(target_os = "linux"))]
+    {
+        Ok(0)
+    }
 }
 
 /// 获取当前上下文（用于命令输出）

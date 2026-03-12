@@ -1,10 +1,12 @@
+#![allow(dead_code)]
+
 /// macOS FSEvents 索引构建器
 ///
 /// 使用 FSEvents 实时监控文件变更：
 /// - 初始扫描建立索引
 /// - FSEvents 监控实时更新
 /// - 系统级通知，低开销
-use super::{FileRecord, IndexBuilder, IndexStats, TrieIndex};
+use super::{FileRecord, IndexBuilder, TrieIndex};
 use anyhow::Result;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -129,9 +131,8 @@ fn should_exclude(path: &str, exclude_paths: &[String]) -> bool {
             return true;
         }
 
-        if exclude_lower.starts_with("**/") {
-            let pattern = &exclude_lower[3..];
-            if path_lower.contains(&pattern) {
+        if let Some(pattern) = exclude_lower.strip_prefix("**/") {
+            if path_lower.contains(pattern) {
                 return true;
             }
         }

@@ -1,8 +1,6 @@
-use crate::error::SearchError;
 use crate::output::{OutputFormat, SearchResult, StreamOutput};
 use anyhow::Result;
 use regex::Regex;
-use std::io::{self, Write};
 use std::path::Path;
 use walkdir::WalkDir;
 
@@ -16,6 +14,7 @@ use walkdir::WalkDir;
 /// 支持流式输出：
 /// - --stream：边匹配边输出
 /// - --page-size N：每页显示 N 条结果
+#[allow(clippy::too_many_arguments)]
 pub fn execute(
     pattern: &str,
     path: &Path,
@@ -156,17 +155,16 @@ fn matches_pattern(pattern: &str, text: &str) -> bool {
         return true;
     }
 
-    if pattern.starts_with('*') && pattern.ends_with('*') {
-        let inner = &pattern[1..pattern.len() - 1];
+    if let Some(inner) = pattern.strip_prefix('*').and_then(|p| p.strip_suffix('*')) {
         return text.contains(inner);
     }
 
-    if pattern.starts_with('*') {
-        return text.ends_with(&pattern[1..]);
+    if let Some(suffix) = pattern.strip_prefix('*') {
+        return text.ends_with(suffix);
     }
 
-    if pattern.ends_with('*') {
-        return text.starts_with(&pattern[..pattern.len() - 1]);
+    if let Some(prefix) = pattern.strip_suffix('*') {
+        return text.starts_with(prefix);
     }
 
     // 支持？通配符
@@ -178,10 +176,10 @@ fn matches_pattern(pattern: &str, text: &str) -> bool {
 }
 
 fn glob_match(pattern: &str, text: &str) -> bool {
-    let mut pattern_chars = pattern.chars();
+    let pattern_chars = pattern.chars();
     let mut text_chars = text.chars();
 
-    while let Some(p_char) = pattern_chars.next() {
+    for p_char in pattern_chars {
         match p_char {
             '?' => {
                 if text_chars.next().is_none() {

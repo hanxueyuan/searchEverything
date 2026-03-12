@@ -1,4 +1,4 @@
-/// 命令单元测试模块
+//! 命令单元测试模块
 
 #[cfg(test)]
 mod index_tests;

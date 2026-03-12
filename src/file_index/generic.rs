@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 /// 通用索引构建器 (用于不支持的平台)
 ///
 /// 使用标准文件系统扫描：
@@ -120,9 +122,8 @@ fn should_exclude(path: &str, exclude_paths: &[String]) -> bool {
             return true;
         }
 
-        if exclude_lower.starts_with("**/") {
-            let pattern = &exclude_lower[3..];
-            if path_lower.contains(&pattern) {
+        if let Some(pattern) = exclude_lower.strip_prefix("**/") {
+            if path_lower.contains(pattern) {
                 return true;
             }
         }

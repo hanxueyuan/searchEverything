@@ -1,5 +1,5 @@
 /// Trie 索引引擎测试
-use crate::file_index::trie::{FileRecord, TrieIndex, TrieNode};
+use crate::file_index::trie::{FileRecord, TrieIndex};
 use std::path::PathBuf;
 use std::time::SystemTime;
 
@@ -19,7 +19,7 @@ fn create_test_record(name: &str, path: &str) -> FileRecord {
 
 #[test]
 fn test_trie_index_basic() {
-    let mut index = TrieIndex::new();
+    let index = TrieIndex::new();
 
     assert!(index.is_empty());
     assert_eq!(index.len(), 0);
