@@ -204,11 +204,6 @@ pub fn start_usn_watch(
     exclude_paths: &[String],
     index: &mut TrieIndex,
 ) -> Result<()> {
-    use std::sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    };
-
     println!("启动 USN Journal 实时监控...");
     println!("监控路径:");
     for path in paths {
